@@ -1,0 +1,17 @@
+{
+  "jsc": {
+    "target": "esnext", // don't downlevel anything, we're not testing that
+    "experimental": {
+      "plugins": [
+        [
+          // Can change the "main" field in the root package.json to "target/wasm32-wasi/debug.." to avoid having to do a release build on every test run
+          // (Tried specifying the path to the executable here directly but couldn't get it to work)
+          "power-assert-swc",
+          {
+            // options
+          }
+        ]
+      ]
+    }
+  }
+}
