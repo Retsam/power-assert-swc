@@ -1,1 +1,4 @@
-let x = "foo";
+test("jest test test", () => {
+  let x = "foo";
+  console.log(x);
+});

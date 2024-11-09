@@ -5,8 +5,10 @@
     "generate-output": "npx swc input -d output --strip-leading-paths"
   },
   "devDependencies": {
-    "power-assert-swc": "..",
     "@swc/cli": "^0.5.0",
-    "@swc/core": "^1.9.1"
+    "@swc/core": "^1.9.1",
+    "@swc/jest": "^0.2.37",
+    "jest": "^29.7.0",
+    "power-assert-swc": ".."
   }
 }
