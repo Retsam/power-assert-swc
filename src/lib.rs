@@ -14,6 +14,8 @@ use swc_core::{
     },
 };
 
+mod power_assert_recorder;
+
 pub struct TransformVisitor;
 
 impl VisitMut for TransformVisitor {
