@@ -1,3 +1,4 @@
+use assert_import_replacer::ReplaceImportsVisitor;
 use swc_core::common::util::take::Take;
 use swc_core::common::{Span, SyntaxContext};
 use swc_core::ecma::ast::{
@@ -14,11 +15,16 @@ use swc_core::{
     },
 };
 
+mod assert_import_replacer;
 mod power_assert_recorder;
 
 pub struct TransformVisitor;
 
 impl VisitMut for TransformVisitor {
+    fn visit_mut_program(&mut self, node: &mut Program) {
+        node.visit_mut_children_with(&mut ReplaceImportsVisitor {});
+        node.visit_mut_children_with(self);
+    }
     fn visit_mut_stmt(&mut self, stmt: &mut Stmt) {
         stmt.visit_mut_children_with(self);
         *stmt = TransformVisitor::iife(vec![stmt.take()], stmt.span())
@@ -34,7 +40,7 @@ impl VisitMut for TransformVisitor {
                 _ => None,
             }
         };
-        let res = inner();
+        inner();
     }
 }
 impl TransformVisitor {
