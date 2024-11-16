@@ -8,7 +8,7 @@
     "swc-plugin",
     "power-assert"
   ],
-  "main": "target/wasm32-wasi/release/power_assert_swc.wasm",
+  "main": "target/wasm32-wasip1/release/power_assert_swc.wasm",
   "scripts": {
     "prepublishOnly": "cargo build-wasi --release"
   },
