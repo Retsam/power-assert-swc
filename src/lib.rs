@@ -12,7 +12,7 @@ pub struct TransformVisitor;
 impl VisitMut for TransformVisitor {
     fn visit_mut_program(&mut self, node: &mut Program) {
         node.visit_mut_children_with(&mut ReplaceImportsVisitor {});
-        node.visit_mut_children_with(&mut PowerAssertTransformerVisitor);
+        node.visit_mut_children_with(&mut PowerAssertTransformerVisitor::new());
     }
 }
 
