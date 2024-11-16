@@ -1,5 +1,7 @@
 use swc_core::ecma::ast::*;
 use swc_core::ecma::visit::VisitMut;
+
+/// This is the equivalent of babel-plugin-empower-assert - replaces imports for 'assert' with imports for 'power-assert'
 pub struct ReplaceImportsVisitor;
 
 impl VisitMut for ReplaceImportsVisitor {
