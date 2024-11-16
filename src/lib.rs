@@ -1,11 +1,7 @@
 use assert_import_replacer::ReplaceImportsVisitor;
 use power_assert_transformer::PowerAssertTransformerVisitor;
-use swc_core::ecma::visit::VisitMutWith;
-use swc_core::ecma::{
-    ast::Program,
-    transforms::testing::test_inline,
-    visit::{as_folder, FoldWith, VisitMut},
-};
+use swc_core::ecma::visit::{visit_mut_pass, VisitMutWith};
+use swc_core::ecma::{ast::Program, visit::VisitMut};
 use swc_core::plugin::{plugin_transform, proxies::TransformPluginProgramMetadata};
 
 mod assert_import_replacer;
@@ -22,15 +18,5 @@ impl VisitMut for TransformVisitor {
 
 #[plugin_transform]
 pub fn process_transform(program: Program, _metadata: TransformPluginProgramMetadata) -> Program {
-    program.fold_with(&mut as_folder(TransformVisitor))
+    program.apply(visit_mut_pass(TransformVisitor))
 }
-
-test_inline!(
-    Default::default(),
-    |_| as_folder(TransformVisitor),
-    boo,
-    // Input codes
-    r#"console.log("transform"); foo(); foo.bar.baz()"#,
-    // Output codes after transformed with plugin
-    r#"console.log("transform");"#
-);

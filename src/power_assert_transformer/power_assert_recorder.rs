@@ -170,42 +170,23 @@ pub fn power_assert_recorder_definition() -> Stmt {
 mod test {
     use super::*;
     use swc_core::ecma::{
-        transforms::testing::test_inline,
-        visit::{as_folder, VisitMut},
+        transforms::testing::test,
+        visit::{visit_mut_pass, VisitMut},
     };
 
-    struct TestVisitor {}
+    struct TestVisitor;
 
     impl VisitMut for TestVisitor {
-        fn visit_mut_module(&mut self, node: &mut swc_core::ecma::ast::Module) {
-            node.body.push(swc_core::ecma::ast::ModuleItem::Stmt(
-                power_assert_recorder_definition(),
-            ));
+        fn visit_mut_script(&mut self, node: &mut Script) {
+            node.body.push(power_assert_recorder_definition());
         }
     }
 
-    test_inline!(
+    test!(
         Default::default(),
-        |_| as_folder(TestVisitor {}),
+        |_| visit_mut_pass(TestVisitor),
         power_assert_recorder,
         // Input codes
-        r#""#,
-        // Output codes after transformed with plugin
-        r#"
-class _powerAssertRecorder {
-    captured = [];
-    _capt(value, espath) {
-        this.captured.push({ value, espath });
-        return value;
-    }
-    _expr(value, source) {
-        const capturedValues = this.captured;
-        this.captured = [];
-        return {
-            powerAssertContext: { value, events: capturedValues },
-            source,
-        };
-    }
-}"#
+        r#""#
     );
 }

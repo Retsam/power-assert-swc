@@ -41,13 +41,13 @@ impl VisitMut for ReplaceImportsVisitor {
 
 #[allow(unused)]
 mod tests {
-    use swc_core::ecma::{transforms::testing::test_inline, visit::as_folder};
+    use swc_core::ecma::{transforms::testing::test, visit::visit_mut_pass};
 
     use super::*;
 
-    test_inline!(
+    test!(
         Default::default(),
-        |_| as_folder(ReplaceImportsVisitor {}),
+        |_| visit_mut_pass(ReplaceImportsVisitor {}),
         import_replace_test,
         // Input codes
         r#"
@@ -56,14 +56,6 @@ import otherThing from "otherThing";
 
 const assert2 = require("assert");
 const otherThing2 = require("otherThing");
-        "#,
-        // Output codes after transformed with plugin
-        r#"
-import assert from "power-assert";
-import otherThing from "otherThing";
-
-const assert2 = require("power-assert");
-const otherThing2 = require("otherThing");
-"#
+        "#
     );
 }
