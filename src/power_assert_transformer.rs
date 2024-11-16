@@ -1,9 +1,12 @@
 use flatten_member_exprs::flatten_member_exprs;
 use power_assert_recorder::power_assert_recorder_definition;
-use swc_core::ecma::{
-    ast::*,
-    transforms::testing::test,
-    visit::{visit_mut_pass, VisitMut, VisitMutWith},
+use swc_core::{
+    common::Mark,
+    ecma::{
+        ast::*,
+        transforms::{base::resolver, testing::test},
+        visit::{visit_mut_pass, VisitMut, VisitMutWith},
+    },
 };
 
 mod flatten_member_exprs;
@@ -50,10 +53,17 @@ impl VisitMut for PowerAssertTransformerVisitor {
         }
     }
 }
+#[allow(unused)]
+fn tr() -> impl Pass {
+    (
+        resolver(Mark::new(), Mark::new(), false),
+        visit_mut_pass(PowerAssertTransformerVisitor::new()),
+    )
+}
 
 test!(
     Default::default(),
-    |_| visit_mut_pass(PowerAssertTransformerVisitor::new()),
+    |_| tr(),
     inserts_recorder,
     r#"
     import assert from 'assert';
@@ -63,7 +73,18 @@ test!(
 
 test!(
     Default::default(),
-    |_| visit_mut_pass(PowerAssertTransformerVisitor::new()),
+    |_| tr(),
+    avoids_name_conflict,
+    r#"
+    import { assert } from 'assert';
+    const _powerAssertRecorder = "name taken";
+    assert(true);
+    "#
+);
+
+test!(
+    Default::default(),
+    |_| tr(),
     doesnt_insert_recorder,
     r#"
     import notAssert from 'assert';
