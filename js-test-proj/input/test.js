@@ -1,4 +1,7 @@
+const assert = require("assert");
+
 test("jest test test", () => {
   let x = "foo";
-  console.log(x);
+  assert(x.toUpperCase() === "BAR");
+  notAssert(x.toUpperCase() === "BAR");
 });
