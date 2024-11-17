@@ -1,5 +1,8 @@
 use swc_core::{common::DUMMY_SP, ecma::ast::*};
 
+const RECORDER_CLASS_NAME: &str = "_powerAssertRecorder";
+const RECORDER_INSTANCE_NAME: &str = "_rec";
+
 /// Returns the AST for the `class _powerAssertRecorder` which is injected into files that use power-assert
 pub fn power_assert_recorder_definition() -> Stmt {
     macro_rules! this_expr {
@@ -21,9 +24,8 @@ pub fn power_assert_recorder_definition() -> Stmt {
             Into::<Ident>::into($sym).into()
         };
     }
-    // class _powerAssertRecorder
     let class = ClassDecl {
-        ident: "_powerAssertRecorder".into(),
+        ident: RECORDER_CLASS_NAME.into(),
         class: Box::new(Class {
             body: vec![
                 // captured = [];
@@ -164,6 +166,27 @@ pub fn power_assert_recorder_definition() -> Stmt {
         declare: false,
     };
     Stmt::Decl(Decl::Class(class))
+}
+
+pub fn new_power_assert_recorder_stmt() -> Stmt {
+    Stmt::Decl(Decl::Var(Box::new(VarDecl {
+        kind: VarDeclKind::Var, // TDZ has runtime cost
+        decls: vec![VarDeclarator {
+            span: DUMMY_SP,
+            name: Into::<IdentName>::into(RECORDER_INSTANCE_NAME).into(),
+            init: Some(
+                NewExpr {
+                    callee: Into::<Ident>::into(RECORDER_CLASS_NAME).into(),
+                    // Put the empty parens on the new call - technically doesn't change the behavior but hurts my soul less
+                    args: Some(vec![]),
+                    ..Default::default()
+                }
+                .into(),
+            ),
+            definite: false,
+        }],
+        ..Default::default()
+    })))
 }
 
 #[cfg(test)]

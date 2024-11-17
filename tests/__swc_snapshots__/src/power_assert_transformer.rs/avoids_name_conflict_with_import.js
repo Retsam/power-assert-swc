@@ -1,6 +1,6 @@
-import assert from 'assert';
-assert(true);
-class _powerAssertRecorder {
+import { _powerAssertRecorder } from "somewhere-else";
+import { assert } from 'assert';
+class _powerAssertRecorder1 {
     captured = [];
     _capt(value, espath) {
         this.captured.push({
@@ -20,4 +20,10 @@ class _powerAssertRecorder {
             source
         };
     }
+}
+var _rec = new _powerAssertRecorder1();
+assert(_rec.capt(true));
+function f() {
+    var _rec = new _powerAssertRecorder1();
+    assert(_rec.capt(true));
 }

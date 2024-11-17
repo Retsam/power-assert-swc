@@ -1,7 +1,5 @@
-import { assert } from 'assert';
-const _powerAssertRecorder = "name taken";
-assert(true);
-class _powerAssertRecorder1 {
+import assert from 'assert';
+class _powerAssertRecorder {
     captured = [];
     _capt(value, espath) {
         this.captured.push({
@@ -22,3 +20,5 @@ class _powerAssertRecorder1 {
         };
     }
 }
+var _rec = new _powerAssertRecorder();
+assert(_rec.capt(true));
