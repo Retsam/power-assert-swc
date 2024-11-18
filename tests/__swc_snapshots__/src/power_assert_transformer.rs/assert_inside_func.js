@@ -21,29 +21,53 @@ class _powerAssertRecorder {
 }
 function f1() {
     var _rec = new _powerAssertRecorder();
-    assert(_rec._expr(_rec._capt(true, "arguments/0")));
+    assert(_rec._expr(_rec._capt(true, "arguments/0"), {
+        content: "assert(true)",
+        filepath: "test.js",
+        line: 2
+    }));
 }
 // expr
 const f2 = function foo() {
     var _rec = new _powerAssertRecorder();
-    assert(_rec._expr(_rec._capt(true, "arguments/0")));
+    assert(_rec._expr(_rec._capt(true, "arguments/0"), {
+        content: "assert(true)",
+        filepath: "test.js",
+        line: 6
+    }));
 };
 // arrow
 const f3 = ()=>{
     var _rec = new _powerAssertRecorder();
-    assert(_rec._expr(_rec._capt(true, "arguments/0")));
+    assert(_rec._expr(_rec._capt(true, "arguments/0"), {
+        content: "assert(true)",
+        filepath: "test.js",
+        line: 10
+    }));
 };
 // arrow shorthand
 const f4 = ()=>{
     var _rec = new _powerAssertRecorder();
-    assert(_rec._expr(_rec._capt(true, "arguments/0")));
+    assert(_rec._expr(_rec._capt(true, "arguments/0"), {
+        content: "assert(true)",
+        filepath: "test.js",
+        line: 13
+    }));
 };
 // nested
 function outer() {
     var _rec = new _powerAssertRecorder();
-    assert(_rec._expr(_rec._capt(true, "arguments/0")));
+    assert(_rec._expr(_rec._capt(true, "arguments/0"), {
+        content: "assert(true)",
+        filepath: "test.js",
+        line: 17
+    }));
     function inner() {
         var _rec = new _powerAssertRecorder();
-        assert(_rec._expr(_rec._capt(true, "arguments/0")));
+        assert(_rec._expr(_rec._capt(true, "arguments/0"), {
+            content: "assert(true)",
+            filepath: "test.js",
+            line: 19
+        }));
     }
 }

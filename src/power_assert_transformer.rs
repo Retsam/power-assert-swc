@@ -1,13 +1,18 @@
+use std::sync::Arc;
+
 use flatten_member_exprs::flatten_member_exprs;
 use power_assert_recorder::{
     new_power_assert_recorder_stmt, power_assert_recorder_definition, wrap_in_capture,
     wrap_in_record,
 };
 use swc_core::{
-    common::{util::take::Take, Mark},
+    common::{util::take::Take, Mark, SourceMapper, Span, Spanned},
     ecma::{
         ast::*,
-        transforms::{base::resolver, testing::test},
+        transforms::{
+            base::resolver,
+            testing::{test, Tester},
+        },
         visit::{visit_mut_pass, VisitMut, VisitMutWith},
     },
 };
@@ -18,13 +23,18 @@ mod power_assert_recorder;
 pub struct PowerAssertTransformerVisitor {
     found_assertion: bool,
     needs_recorder: bool,
+
+    file_name: String,
+    source_map: Arc<dyn SourceMapper>,
 }
 
 impl PowerAssertTransformerVisitor {
-    pub fn new() -> Self {
+    pub fn new(file_name: String, source_map: Arc<dyn SourceMapper>) -> Self {
         Self {
             found_assertion: false,
             needs_recorder: false,
+            file_name,
+            source_map,
         }
     }
 
@@ -36,8 +46,24 @@ impl PowerAssertTransformerVisitor {
             .unwrap_or(false)
     }
 
-    fn transform_assert_call(&self, node: &mut Expr) {
-        *node = wrap_in_record(capture_expr(node.take(), vec!["arguments/0".into()]));
+    fn transform_assert_call(&self, node: &mut Expr, assert_span: Span) -> Result<(), String> {
+        let expr = capture_expr(node.take(), vec!["arguments/0".into()]);
+        let source_code = self
+            .source_map
+            .span_to_snippet(assert_span)
+            .map_err(|_| "Failed to get source_code for expr")?;
+        let line_num = self
+            .source_map
+            .span_to_lines(assert_span)
+            .map_err(|_| "Failed to get line for expr")
+            .and_then(|lines| {
+                if lines.lines.is_empty() {
+                    return Err("Failed to get line for expr: empty lines list");
+                }
+                Ok(lines.lines[0].line_index)
+            })?;
+        *node = wrap_in_record(expr, &self.file_name, source_code, line_num);
+        Ok(())
     }
 }
 
@@ -120,10 +146,14 @@ impl VisitMut for PowerAssertTransformerVisitor {
             node.visit_mut_children_with(self);
             return;
         }
+        // Used to output the input source code into the data passed to power-assert,
+        //  including the assert function call, which is why the span is captured here, not inside transform_assert_call
+        let assert_span = node.span();
         if let [ExprOrSpread { expr, .. }] = &mut node.args[..] {
-            self.found_assertion = true;
-            self.needs_recorder = true;
-            self.transform_assert_call(expr);
+            if self.transform_assert_call(expr, assert_span).is_ok() {
+                self.found_assertion = true;
+                self.needs_recorder = true;
+            }
         }
     }
 
@@ -192,16 +222,19 @@ impl VisitMut for PowerAssertTransformerVisitor {
     }
 }
 #[allow(unused)]
-fn tr() -> impl Pass {
+fn tr(tester: &mut Tester) -> impl Pass {
     (
         resolver(Mark::new(), Mark::new(), false),
-        visit_mut_pass(PowerAssertTransformerVisitor::new()),
+        visit_mut_pass(PowerAssertTransformerVisitor::new(
+            "test.js".into(),
+            tester.cm.clone(),
+        )),
     )
 }
 
 test!(
     Default::default(),
-    |_| tr(),
+    tr,
     assert_inside_func,
     r#"
     function f1() {
@@ -230,7 +263,7 @@ test!(
 
 test!(
     Default::default(),
-    |_| tr(),
+    tr,
     top_level_assert,
     r#"
     import assert from 'assert';
@@ -240,7 +273,7 @@ test!(
 
 test!(
     Default::default(),
-    |_| tr(),
+    tr,
     expr_test,
     r#"
     import assert from 'assert';
@@ -251,7 +284,7 @@ test!(
 
 test!(
     Default::default(),
-    |_| tr(),
+    tr,
     avoids_name_conflict_with_local,
     r#"
     import { assert } from 'assert';
@@ -264,7 +297,7 @@ test!(
 );
 test!(
     Default::default(),
-    |_| tr(),
+    tr,
     avoids_name_conflict_with_import,
     r#"
     import { _powerAssertRecorder } from "somewhere-else";
@@ -278,7 +311,7 @@ test!(
 
 test!(
     Default::default(),
-    |_| tr(),
+    tr,
     no_assert,
     r#"
     import notAssert from 'assert';

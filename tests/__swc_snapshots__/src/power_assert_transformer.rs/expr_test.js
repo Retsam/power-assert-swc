@@ -21,4 +21,8 @@ class _powerAssertRecorder {
     }
 }
 var _rec = new _powerAssertRecorder();
-assert(_rec._expr(_rec._capt(!_rec._capt(isNaN(_rec._capt(a, "arguments/0/argument/arguments/0")), "arguments/0/argument"), "arguments/0")));
+assert(_rec._expr(_rec._capt(!_rec._capt(isNaN(_rec._capt(a, "arguments/0/argument/arguments/0")), "arguments/0/argument"), "arguments/0"), {
+    content: "assert(!isNaN(a))",
+    filepath: "test.js",
+    line: 3
+}));

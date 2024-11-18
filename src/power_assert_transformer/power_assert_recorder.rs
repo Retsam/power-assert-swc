@@ -192,17 +192,37 @@ pub fn new_power_assert_recorder_stmt() -> Stmt {
     })))
 }
 
-pub fn wrap_in_record(expr: Expr) -> Expr {
+pub fn wrap_in_record(expr: Expr, file_path: &str, source: String, line: usize) -> Expr {
     Expr::Call(CallExpr {
         callee: Callee::Expr(Box::new(Expr::Member(MemberExpr {
             obj: Into::<Ident>::into("_rec").into(),
             prop: ident_name!(EXPRESSION_WRAPPER_METHOD_NAME),
             span: DUMMY_SP,
         }))),
-        args: vec![ExprOrSpread {
-            spread: None,
-            expr: Box::new(expr),
-        }],
+        args: vec![
+            expr.into(),
+            Expr::Object(ObjectLit {
+                props: vec![
+                    Prop::KeyValue(KeyValueProp {
+                        key: ident_name!("content"),
+                        value: source.into(),
+                    })
+                    .into(),
+                    Prop::KeyValue(KeyValueProp {
+                        key: ident_name!("filepath"),
+                        value: file_path.into(),
+                    })
+                    .into(),
+                    Prop::KeyValue(KeyValueProp {
+                        key: ident_name!("line"),
+                        value: line.into(),
+                    })
+                    .into(),
+                ],
+                ..Default::default()
+            })
+            .into(),
+        ],
         ..Default::default()
     })
 }
