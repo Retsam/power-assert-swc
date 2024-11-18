@@ -18,8 +18,8 @@ pub struct TransformVisitor {
 
 impl VisitMut for TransformVisitor {
     fn visit_mut_program(&mut self, node: &mut Program) {
-        node.visit_mut_children_with(&mut ReplaceImportsVisitor {});
-        node.visit_mut_children_with(&mut PowerAssertTransformerVisitor::new(
+        node.visit_mut_with(&mut ReplaceImportsVisitor {});
+        node.visit_mut_with(&mut PowerAssertTransformerVisitor::new(
             self.file_name.clone(),
             self.source_map.clone(),
         ));
