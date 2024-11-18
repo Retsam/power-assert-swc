@@ -1,7 +1,10 @@
 use flatten_member_exprs::flatten_member_exprs;
-use power_assert_recorder::{new_power_assert_recorder_stmt, power_assert_recorder_definition};
+use power_assert_recorder::{
+    new_power_assert_recorder_stmt, power_assert_recorder_definition, wrap_in_capture,
+    wrap_in_record,
+};
 use swc_core::{
-    common::{util::take::Take, Mark, DUMMY_SP},
+    common::{util::take::Take, Mark},
     ecma::{
         ast::*,
         transforms::{base::resolver, testing::test},
@@ -33,20 +36,82 @@ impl PowerAssertTransformerVisitor {
             .unwrap_or(false)
     }
 
-    fn transform_expr(&self, node: &mut Expr) {
-        *node = Expr::Call(CallExpr {
-            callee: Callee::Expr(Box::new(Expr::Member(MemberExpr {
-                obj: Into::<Ident>::into("_rec").into(),
-                prop: Into::<IdentName>::into("capt").into(),
-                span: DUMMY_SP,
-            }))),
-            args: vec![ExprOrSpread {
-                spread: None,
-                expr: Box::new(node.take()),
-            }],
-            ..Default::default()
-        });
+    fn transform_assert_call(&self, node: &mut Expr) {
+        *node = wrap_in_record(capture_expr(node.take(), vec!["arguments/0".into()]));
     }
+}
+
+fn capture_expr(mut node: Expr, path: Vec<String>) -> Expr {
+    macro_rules! append_path {
+        ($str: expr) => {{
+            let mut x = path.clone();
+            x.push($str.to_string());
+            x
+        }};
+    }
+
+    let mut inner_expr = node.take();
+    inner_expr = match inner_expr {
+        Expr::This(_) => inner_expr,
+        // Expr::Array(array_lit) => todo!(),
+        // Expr::Object(object_lit) => todo!(),
+        // Expr::Fn(fn_expr) => todo!(),
+        Expr::Unary(unary_expr) => UnaryExpr {
+            arg: Box::new(capture_expr(*unary_expr.arg, append_path!("argument"))),
+            ..unary_expr
+        }
+        .into(),
+        // Expr::Update(update_expr) => todo!(),
+        // Expr::Bin(bin_expr) => todo!(),
+        // Expr::Assign(assign_expr) => todo!(),
+        // Expr::Member(member_expr) => todo!(),
+        // Expr::SuperProp(super_prop_expr) => todo!(),
+        // Expr::Cond(cond_expr) => todo!(),
+        Expr::Call(call_expr) => CallExpr {
+            args: call_expr
+                .args
+                .into_iter()
+                .enumerate()
+                .map(|(i, x)| ExprOrSpread {
+                    expr: Box::new(capture_expr(
+                        *x.expr,
+                        append_path!(format!("arguments/{i}")),
+                    )),
+                    ..x
+                })
+                .collect(),
+            ..call_expr
+        }
+        .into(),
+        // Expr::New(new_expr) => todo!(),
+        // Expr::Seq(seq_expr) => todo!(),
+        // Expr::Ident(ident) => todo!(),
+        // Expr::Lit(lit) => todo!(),
+        // Expr::Tpl(tpl) => todo!(),
+        // Expr::TaggedTpl(tagged_tpl) => todo!(),
+        // Expr::Arrow(arrow_expr) => todo!(),
+        // Expr::Class(class_expr) => todo!(),
+        // Expr::Yield(yield_expr) => todo!(),
+        // Expr::MetaProp(meta_prop_expr) => todo!(),
+        // Expr::Await(await_expr) => todo!(),
+        // Expr::Paren(paren_expr) => todo!(),
+        // Expr::JSXMember(jsxmember_expr) => todo!(),
+        // Expr::JSXNamespacedName(jsxnamespaced_name) => todo!(),
+        // Expr::JSXEmpty(jsxempty_expr) => todo!(),
+        // Expr::JSXElement(jsxelement) => todo!(),
+        // Expr::JSXFragment(jsxfragment) => todo!(),
+        // Expr::TsTypeAssertion(ts_type_assertion) => todo!(),
+        // Expr::TsConstAssertion(ts_const_assertion) => todo!(),
+        // Expr::TsNonNull(ts_non_null_expr) => todo!(),
+        // Expr::TsAs(ts_as_expr) => todo!(),
+        // Expr::TsInstantiation(ts_instantiation) => todo!(),
+        // Expr::TsSatisfies(ts_satisfies_expr) => todo!(),
+        // Expr::PrivateName(private_name) => todo!(),
+        // Expr::OptChain(opt_chain_expr) => todo!(),
+        // Expr::Invalid(invalid) => todo!(),
+        _ => inner_expr,
+    };
+    wrap_in_capture(inner_expr, path.join("/"))
 }
 
 impl VisitMut for PowerAssertTransformerVisitor {
@@ -58,7 +123,7 @@ impl VisitMut for PowerAssertTransformerVisitor {
         if let [ExprOrSpread { expr, .. }] = &mut node.args[..] {
             self.found_assertion = true;
             self.needs_recorder = true;
-            self.transform_expr(expr);
+            self.transform_assert_call(expr);
         }
     }
 
@@ -170,6 +235,17 @@ test!(
     r#"
     import assert from 'assert';
     assert(true);
+    "#
+);
+
+test!(
+    Default::default(),
+    |_| tr(),
+    expr_test,
+    r#"
+    import assert from 'assert';
+
+    assert(!isNaN(a))
     "#
 );
 

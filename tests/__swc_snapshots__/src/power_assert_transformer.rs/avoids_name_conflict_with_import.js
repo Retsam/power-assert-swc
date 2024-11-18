@@ -22,8 +22,8 @@ class _powerAssertRecorder1 {
     }
 }
 var _rec = new _powerAssertRecorder1();
-assert(_rec.capt(true));
+assert(_rec._expr(_rec._capt(true, "arguments/0")));
 function f() {
     var _rec = new _powerAssertRecorder1();
-    assert(_rec.capt(true));
+    assert(_rec._expr(_rec._capt(true, "arguments/0")));
 }

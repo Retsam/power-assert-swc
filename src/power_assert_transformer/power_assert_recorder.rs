@@ -2,28 +2,31 @@ use swc_core::{common::DUMMY_SP, ecma::ast::*};
 
 const RECORDER_CLASS_NAME: &str = "_powerAssertRecorder";
 const RECORDER_INSTANCE_NAME: &str = "_rec";
+const CAPTURE_METHOD_NAME: &str = "_capt";
+const EXPRESSION_WRAPPER_METHOD_NAME: &str = "_expr";
+
+macro_rules! this_expr {
+    () => {
+        Box::new(Expr::This(ThisExpr { span: DUMMY_SP }))
+    };
+}
+macro_rules! ident_name {
+    ($sym: expr) => {
+        IdentName {
+            span: DUMMY_SP,
+            sym: $sym.into(),
+        }
+        .into()
+    };
+}
+macro_rules! from_ident {
+    ($sym: expr) => {
+        Into::<Ident>::into($sym).into()
+    };
+}
 
 /// Returns the AST for the `class _powerAssertRecorder` which is injected into files that use power-assert
 pub fn power_assert_recorder_definition() -> Stmt {
-    macro_rules! this_expr {
-        () => {
-            Box::new(Expr::This(ThisExpr { span: DUMMY_SP }))
-        };
-    }
-    macro_rules! ident_name {
-        ($sym: literal) => {
-            IdentName {
-                span: DUMMY_SP,
-                sym: $sym.into(),
-            }
-            .into()
-        };
-    }
-    macro_rules! from_ident {
-        ($sym: literal) => {
-            Into::<Ident>::into($sym).into()
-        };
-    }
     let class = ClassDecl {
         ident: RECORDER_CLASS_NAME.into(),
         class: Box::new(Class {
@@ -36,7 +39,7 @@ pub fn power_assert_recorder_definition() -> Stmt {
                 }),
                 // _capt method
                 ClassMember::Method(ClassMethod {
-                    key: from_ident!("_capt"),
+                    key: from_ident!(CAPTURE_METHOD_NAME),
                     function: Box::new(Function {
                         params: vec![from_ident!("value"), from_ident!("espath")],
                         body: Some(BlockStmt {
@@ -85,7 +88,7 @@ pub fn power_assert_recorder_definition() -> Stmt {
                 }),
                 // _expr method
                 ClassMember::Method(ClassMethod {
-                    key: ident_name!("_expr"),
+                    key: ident_name!(EXPRESSION_WRAPPER_METHOD_NAME),
                     function: Box::new(Function {
                         params: vec![ident_name!("value"), ident_name!("source")],
                         body: Some(BlockStmt {
@@ -187,6 +190,42 @@ pub fn new_power_assert_recorder_stmt() -> Stmt {
         }],
         ..Default::default()
     })))
+}
+
+pub fn wrap_in_record(expr: Expr) -> Expr {
+    Expr::Call(CallExpr {
+        callee: Callee::Expr(Box::new(Expr::Member(MemberExpr {
+            obj: Into::<Ident>::into("_rec").into(),
+            prop: ident_name!(EXPRESSION_WRAPPER_METHOD_NAME),
+            span: DUMMY_SP,
+        }))),
+        args: vec![ExprOrSpread {
+            spread: None,
+            expr: Box::new(expr),
+        }],
+        ..Default::default()
+    })
+}
+
+pub fn wrap_in_capture(expr: Expr, path: String) -> Expr {
+    Expr::Call(CallExpr {
+        callee: Callee::Expr(Box::new(Expr::Member(MemberExpr {
+            obj: Into::<Ident>::into("_rec").into(),
+            prop: ident_name!(CAPTURE_METHOD_NAME),
+            span: DUMMY_SP,
+        }))),
+        args: vec![
+            ExprOrSpread {
+                spread: None,
+                expr: Box::new(expr),
+            },
+            ExprOrSpread {
+                spread: None,
+                expr: path.into(),
+            },
+        ],
+        ..Default::default()
+    })
 }
 
 #[cfg(test)]
