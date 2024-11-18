@@ -62,7 +62,7 @@ impl PowerAssertTransformerVisitor {
                 }
                 Ok(lines.lines[0].line_index)
             })?;
-        *node = wrap_in_record(expr, &self.file_name, source_code, line_num);
+        *node = wrap_in_record(expr, &self.file_name, &source_code, line_num);
         Ok(())
     }
 }

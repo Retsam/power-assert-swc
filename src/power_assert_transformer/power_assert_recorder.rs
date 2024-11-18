@@ -192,7 +192,7 @@ pub fn new_power_assert_recorder_stmt() -> Stmt {
     })))
 }
 
-pub fn wrap_in_record(expr: Expr, file_path: &str, source: String, line: usize) -> Expr {
+pub fn wrap_in_record(expr: Expr, file_path: &str, source: &str, line: usize) -> Expr {
     Expr::Call(CallExpr {
         callee: Callee::Expr(Box::new(Expr::Member(MemberExpr {
             obj: Into::<Ident>::into("_rec").into(),
