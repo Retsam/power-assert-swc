@@ -21,8 +21,8 @@ class _powerAssertRecorder {
     }
 }
 var _rec = new _powerAssertRecorder();
-assert(_rec._expr(_rec._capt(true, "arguments/0"), {
-    content: "assert(true)",
+assert(_rec._expr(_rec._capt(a, "arguments/0"), {
+    content: "assert(a)",
     filepath: "test.js",
     line: 2
 }));

@@ -21,8 +21,8 @@ class _powerAssertRecorder {
 }
 function f1() {
     var _rec = new _powerAssertRecorder();
-    assert(_rec._expr(_rec._capt(true, "arguments/0"), {
-        content: "assert(true)",
+    assert(_rec._expr(_rec._capt(a, "arguments/0"), {
+        content: "assert(a)",
         filepath: "test.js",
         line: 2
     }));
@@ -30,8 +30,8 @@ function f1() {
 // expr
 const f2 = function foo() {
     var _rec = new _powerAssertRecorder();
-    assert(_rec._expr(_rec._capt(true, "arguments/0"), {
-        content: "assert(true)",
+    assert(_rec._expr(_rec._capt(a, "arguments/0"), {
+        content: "assert(a)",
         filepath: "test.js",
         line: 6
     }));
@@ -39,8 +39,8 @@ const f2 = function foo() {
 // arrow
 const f3 = ()=>{
     var _rec = new _powerAssertRecorder();
-    assert(_rec._expr(_rec._capt(true, "arguments/0"), {
-        content: "assert(true)",
+    assert(_rec._expr(_rec._capt(a, "arguments/0"), {
+        content: "assert(a)",
         filepath: "test.js",
         line: 10
     }));
@@ -48,24 +48,19 @@ const f3 = ()=>{
 // arrow shorthand
 const f4 = ()=>{
     var _rec = new _powerAssertRecorder();
-    assert(_rec._expr(_rec._capt(true, "arguments/0"), {
-        content: "assert(true)",
+    assert(_rec._expr(_rec._capt(a, "arguments/0"), {
+        content: "assert(a)",
         filepath: "test.js",
         line: 13
     }));
 };
 // nested
 function outer() {
-    var _rec = new _powerAssertRecorder();
-    assert(_rec._expr(_rec._capt(true, "arguments/0"), {
-        content: "assert(true)",
-        filepath: "test.js",
-        line: 17
-    }));
+    assert(true);
     function inner() {
         var _rec = new _powerAssertRecorder();
-        assert(_rec._expr(_rec._capt(true, "arguments/0"), {
-            content: "assert(true)",
+        assert(_rec._expr(_rec._capt(a, "arguments/0"), {
+            content: "assert(a)",
             filepath: "test.js",
             line: 19
         }));

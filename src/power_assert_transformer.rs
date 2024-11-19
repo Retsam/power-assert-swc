@@ -46,8 +46,12 @@ impl PowerAssertTransformerVisitor {
             .unwrap_or(false)
     }
 
-    fn transform_assert_call(&self, node: &mut Expr, assert_span: Span) -> Result<(), String> {
-        let expr = capture_expr(node.take(), vec!["arguments/0".into()]);
+    fn transform_assert_call(&mut self, node: &mut Expr, assert_span: Span) -> Result<(), String> {
+        let expr = self.capture_expr(node.take(), vec!["arguments/0".into()]);
+        if !self.needs_recorder {
+            *node = expr;
+            return Ok(());
+        }
         let source_code = self
             .source_map
             .span_to_snippet(assert_span)
@@ -65,79 +69,91 @@ impl PowerAssertTransformerVisitor {
         *node = wrap_in_record(expr, &self.file_name, &source_code, line_num);
         Ok(())
     }
-}
 
-fn capture_expr(mut node: Expr, path: Vec<String>) -> Expr {
-    macro_rules! append_path {
-        ($str: expr) => {{
-            let mut x = path.clone();
-            x.push($str.to_string());
-            x
-        }};
+    fn capture_expr(&mut self, mut node: Expr, path: Vec<String>) -> Expr {
+        macro_rules! append_path {
+            ($str: expr) => {{
+                let mut x = path.clone();
+                x.push($str.to_string());
+                x
+            }};
+        }
+
+        macro_rules! capt {
+            ($self: ident, $expr: expr) => {{
+                self.found_assertion = true;
+                self.needs_recorder = true;
+                wrap_in_capture($expr, path.join("/"))
+            }};
+        }
+
+        let inner_expr = node.take();
+        match inner_expr {
+            Expr::This(_) => capt!(self, inner_expr),
+            // Expr::Array(array_lit) => todo!(),
+            // Expr::Object(object_lit) => todo!(),
+            // Expr::Fn(fn_expr) => todo!(),
+            Expr::Unary(unary_expr) => capt!(
+                self,
+                UnaryExpr {
+                    arg: Box::new(self.capture_expr(*unary_expr.arg, append_path!("argument"))),
+                    ..unary_expr
+                }
+                .into()
+            ),
+            // Expr::Update(update_expr) => todo!(),
+            // Expr::Bin(bin_expr) => todo!(),
+            // Expr::Assign(assign_expr) => todo!(),
+            // Expr::Member(member_expr) => todo!(),
+            // Expr::SuperProp(super_prop_expr) => todo!(),
+            // Expr::Cond(cond_expr) => todo!(),
+            Expr::Call(call_expr) => capt!(
+                self,
+                CallExpr {
+                    args: call_expr
+                        .args
+                        .into_iter()
+                        .enumerate()
+                        .map(|(i, x)| ExprOrSpread {
+                            expr: Box::new(
+                                self.capture_expr(*x.expr, append_path!(format!("arguments/{i}"))),
+                            ),
+                            ..x
+                        })
+                        .collect(),
+                    ..call_expr
+                }
+                .into()
+            ),
+            // Expr::New(new_expr) => todo!(),
+            // Expr::Seq(seq_expr) => todo!(),
+            Expr::Ident(_) => capt!(self, inner_expr),
+            // Expr::Lit(lit) => todo!(),
+            // Expr::Tpl(tpl) => todo!(),
+            // Expr::TaggedTpl(tagged_tpl) => todo!(),
+            // Expr::Arrow(arrow_expr) => todo!(),
+            // Expr::Class(class_expr) => todo!(),
+            // Expr::Yield(yield_expr) => todo!(),
+            // Expr::MetaProp(meta_prop_expr) => todo!(),
+            // Expr::Await(await_expr) => todo!(),
+            // Expr::Paren(paren_expr) => todo!(),
+            // Expr::JSXMember(jsxmember_expr) => todo!(),
+            // Expr::JSXNamespacedName(jsxnamespaced_name) => todo!(),
+            // Expr::JSXEmpty(jsxempty_expr) => todo!(),
+            // Expr::JSXElement(jsxelement) => todo!(),
+            // Expr::JSXFragment(jsxfragment) => todo!(),
+            // Expr::TsTypeAssertion(ts_type_assertion) => todo!(),
+            // Expr::TsConstAssertion(ts_const_assertion) => todo!(),
+            // Expr::TsNonNull(ts_non_null_expr) => todo!(),
+            // Expr::TsAs(ts_as_expr) => todo!(),
+            // Expr::TsInstantiation(ts_instantiation) => todo!(),
+            // Expr::TsSatisfies(ts_satisfies_expr) => todo!(),
+            // Expr::PrivateName(private_name) => todo!(),
+            // Expr::OptChain(opt_chain_expr) => todo!(),
+            // Expr::Invalid(invalid) => todo!(),
+            _ => inner_expr,
+        }
     }
-
-    let mut inner_expr = node.take();
-    inner_expr = match inner_expr {
-        Expr::This(_) => inner_expr,
-        // Expr::Array(array_lit) => todo!(),
-        // Expr::Object(object_lit) => todo!(),
-        // Expr::Fn(fn_expr) => todo!(),
-        Expr::Unary(unary_expr) => UnaryExpr {
-            arg: Box::new(capture_expr(*unary_expr.arg, append_path!("argument"))),
-            ..unary_expr
-        }
-        .into(),
-        // Expr::Update(update_expr) => todo!(),
-        // Expr::Bin(bin_expr) => todo!(),
-        // Expr::Assign(assign_expr) => todo!(),
-        // Expr::Member(member_expr) => todo!(),
-        // Expr::SuperProp(super_prop_expr) => todo!(),
-        // Expr::Cond(cond_expr) => todo!(),
-        Expr::Call(call_expr) => CallExpr {
-            args: call_expr
-                .args
-                .into_iter()
-                .enumerate()
-                .map(|(i, x)| ExprOrSpread {
-                    expr: Box::new(capture_expr(
-                        *x.expr,
-                        append_path!(format!("arguments/{i}")),
-                    )),
-                    ..x
-                })
-                .collect(),
-            ..call_expr
-        }
-        .into(),
-        // Expr::New(new_expr) => todo!(),
-        // Expr::Seq(seq_expr) => todo!(),
-        // Expr::Ident(ident) => todo!(),
-        // Expr::Lit(lit) => todo!(),
-        // Expr::Tpl(tpl) => todo!(),
-        // Expr::TaggedTpl(tagged_tpl) => todo!(),
-        // Expr::Arrow(arrow_expr) => todo!(),
-        // Expr::Class(class_expr) => todo!(),
-        // Expr::Yield(yield_expr) => todo!(),
-        // Expr::MetaProp(meta_prop_expr) => todo!(),
-        // Expr::Await(await_expr) => todo!(),
-        // Expr::Paren(paren_expr) => todo!(),
-        // Expr::JSXMember(jsxmember_expr) => todo!(),
-        // Expr::JSXNamespacedName(jsxnamespaced_name) => todo!(),
-        // Expr::JSXEmpty(jsxempty_expr) => todo!(),
-        // Expr::JSXElement(jsxelement) => todo!(),
-        // Expr::JSXFragment(jsxfragment) => todo!(),
-        // Expr::TsTypeAssertion(ts_type_assertion) => todo!(),
-        // Expr::TsConstAssertion(ts_const_assertion) => todo!(),
-        // Expr::TsNonNull(ts_non_null_expr) => todo!(),
-        // Expr::TsAs(ts_as_expr) => todo!(),
-        // Expr::TsInstantiation(ts_instantiation) => todo!(),
-        // Expr::TsSatisfies(ts_satisfies_expr) => todo!(),
-        // Expr::PrivateName(private_name) => todo!(),
-        // Expr::OptChain(opt_chain_expr) => todo!(),
-        // Expr::Invalid(invalid) => todo!(),
-        _ => inner_expr,
-    };
-    wrap_in_capture(inner_expr, path.join("/"))
 }
 
 impl VisitMut for PowerAssertTransformerVisitor {
@@ -150,10 +166,7 @@ impl VisitMut for PowerAssertTransformerVisitor {
         //  including the assert function call, which is why the span is captured here, not inside transform_assert_call
         let assert_span = node.span();
         if let [ExprOrSpread { expr, .. }] = &mut node.args[..] {
-            if self.transform_assert_call(expr, assert_span).is_ok() {
-                self.found_assertion = true;
-                self.needs_recorder = true;
-            }
+            let _ = self.transform_assert_call(expr, assert_span);
         }
     }
 
@@ -238,24 +251,24 @@ test!(
     assert_inside_func,
     r#"
     function f1() {
-        assert(true);
+        assert(a);
     }
     // expr
     const f2 = function foo() {
-        assert(true);
+        assert(a);
     }
     // arrow
     const f3 = () => {
-        assert(true);
+        assert(a);
     }
     // arrow shorthand
-    const f4 = () => assert(true);
+    const f4 = () => assert(a);
 
     // nested
     function outer() {
         assert(true);
         function inner() {
-            assert(true);
+            assert(a);
         }
     }
     "#
@@ -267,7 +280,7 @@ test!(
     top_level_assert,
     r#"
     import assert from 'assert';
-    assert(true);
+    assert(a)
     "#
 );
 
@@ -282,6 +295,18 @@ test!(
     "#
 );
 
+// Shouldn't replace assert(true) with any sort of power-assert stuff
+test!(
+    Default::default(),
+    tr,
+    boring_assert,
+    r#"
+    import assert from 'assert';
+
+    assert(true);
+    "#
+);
+
 test!(
     Default::default(),
     tr,
@@ -289,7 +314,7 @@ test!(
     r#"
     import { assert } from 'assert';
     const _powerAssertRecorder = "name taken";
-    assert(true);
+    assert(a);
     function f() {
         assert(_powerAssertRecorder);
     }
@@ -302,9 +327,9 @@ test!(
     r#"
     import { _powerAssertRecorder } from "somewhere-else";
     import { assert } from 'assert';
-    assert(true);
+    assert(a);
     function f() {
-        assert(true);
+        assert(a);
     }
     "#
 );
