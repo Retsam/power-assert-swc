@@ -24,14 +24,14 @@ class _powerAssertRecorder1 {
 var _rec = new _powerAssertRecorder1();
 assert(_rec._expr(_rec._capt(a, "arguments/0"), {
     content: "assert(a)",
-    filepath: "test.js",
+    filepath: "input/test.js",
     line: 3
 }));
 function f() {
     var _rec = new _powerAssertRecorder1();
     assert(_rec._expr(_rec._capt(a, "arguments/0"), {
         content: "assert(a)",
-        filepath: "test.js",
+        filepath: "input/test.js",
         line: 5
     }));
 }

@@ -23,6 +23,6 @@ class _powerAssertRecorder {
 var _rec = new _powerAssertRecorder();
 assert(_rec._expr(_rec._capt(_rec._capt(_rec._capt(x, "arguments/0/test/left/callee/object").toUpperCase(), "arguments/0/test/left") == "BAR", "arguments/0/test") ? _rec._capt(_rec._capt(x, "arguments/0/consequent/object").y, "arguments/0/consequent") : _rec._capt(_rec._capt(x, "arguments/0/alternate/object").z, "arguments/0/alternate"), {
     content: 'assert(x.toUpperCase() == "BAR" ? x.y : x.z)',
-    filepath: "test.js",
+    filepath: "input/test.js",
     line: 3
 }));

@@ -307,7 +307,7 @@ fn tr(tester: &mut Tester) -> impl Pass {
     (
         resolver(Mark::new(), Mark::new(), false),
         visit_mut_pass(PowerAssertTransformerVisitor::new(
-            "test.js".into(),
+            "input/test.js".into(),
             tester.cm.clone(),
         )),
     )

@@ -23,7 +23,7 @@ function f1() {
     var _rec = new _powerAssertRecorder();
     assert(_rec._expr(_rec._capt(a, "arguments/0"), {
         content: "assert(a)",
-        filepath: "test.js",
+        filepath: "input/test.js",
         line: 2
     }));
 }
@@ -32,7 +32,7 @@ const f2 = function foo() {
     var _rec = new _powerAssertRecorder();
     assert(_rec._expr(_rec._capt(a, "arguments/0"), {
         content: "assert(a)",
-        filepath: "test.js",
+        filepath: "input/test.js",
         line: 6
     }));
 };
@@ -41,7 +41,7 @@ const f3 = ()=>{
     var _rec = new _powerAssertRecorder();
     assert(_rec._expr(_rec._capt(a, "arguments/0"), {
         content: "assert(a)",
-        filepath: "test.js",
+        filepath: "input/test.js",
         line: 10
     }));
 };
@@ -50,7 +50,7 @@ const f4 = ()=>{
     var _rec = new _powerAssertRecorder();
     assert(_rec._expr(_rec._capt(a, "arguments/0"), {
         content: "assert(a)",
-        filepath: "test.js",
+        filepath: "input/test.js",
         line: 13
     }));
 };
@@ -61,7 +61,7 @@ function outer() {
         var _rec = new _powerAssertRecorder();
         assert(_rec._expr(_rec._capt(a, "arguments/0"), {
             content: "assert(a)",
-            filepath: "test.js",
+            filepath: "input/test.js",
             line: 19
         }));
     }
