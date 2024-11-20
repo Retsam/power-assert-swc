@@ -149,7 +149,17 @@ impl PowerAssertTransformerVisitor {
                 }
             ),
             // Expr::SuperProp(super_prop_expr) => todo!(),
-            // Expr::Cond(cond_expr) => todo!(),
+            Expr::Cond(cond_expr) => CondExpr {
+                test: Box::new(self.capture_expr(*cond_expr.test, append_path!("test"), None)),
+                cons: Box::new(self.capture_expr(
+                    *cond_expr.cons,
+                    append_path!("consequent"),
+                    None,
+                )),
+                alt: Box::new(self.capture_expr(*cond_expr.alt, append_path!("alternate"), None)),
+                ..cond_expr
+            }
+            .into(),
             Expr::Call(call_expr) => capt!(
                 self,
                 CallExpr {
@@ -187,7 +197,7 @@ impl PowerAssertTransformerVisitor {
             // Expr::New(new_expr) => todo!(),
             // Expr::Seq(seq_expr) => todo!(),
             Expr::Ident(_) => capt!(self, inner_expr),
-            // Expr::Lit(lit) => todo!(),
+            Expr::Lit(_) => inner_expr,
             // Expr::Tpl(tpl) => todo!(),
             // Expr::TaggedTpl(tagged_tpl) => todo!(),
             // Expr::Arrow(arrow_expr) => todo!(),
@@ -350,7 +360,7 @@ test!(
     r#"
     import assert from 'assert';
 
-    assert(x.toUpperCase() == "BAR");
+    assert(x.toUpperCase() == "BAR" ? x.y : x.z);
     "#
 );
 
