@@ -19,3 +19,10 @@ expr_test!(
     assert(x.toUpperCase() == "BAR" ? x.y : x.z);
     "#
 );
+
+expr_test!(
+    expr_classes,
+    r#"
+    assert(new x.y() instanceof SomeThing)
+    "#
+);

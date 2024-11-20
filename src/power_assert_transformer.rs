@@ -123,6 +123,24 @@ impl PowerAssertTransformerVisitor {
             };
         }
 
+        // Common logic shared between Expr::Call and Expr::New
+        macro_rules! capture_args {
+            ($self: ident, $args: expr) => {
+                $args
+                    .into_iter()
+                    .enumerate()
+                    .map(|(i, x)| ExprOrSpread {
+                        expr: Box::new($self.capture_expr(
+                            *x.expr,
+                            append_path(&format!("arguments/{i}")),
+                            None,
+                        )),
+                        ..x
+                    })
+                    .collect::<Vec<_>>()
+            };
+        }
+
         match node.take() {
             // Expr::Array(array_lit) => todo!(),
             // Expr::Object(object_lit) => todo!(),
@@ -164,23 +182,19 @@ impl PowerAssertTransformerVisitor {
                         // Nothing to capture in these cases
                         Callee::Super(_) | Callee::Import(_) => call_expr.callee,
                     },
-                    args: call_expr
-                        .args
-                        .into_iter()
-                        .enumerate()
-                        .map(|(i, x)| ExprOrSpread {
-                            expr: Box::new(self.capture_expr(
-                                *x.expr,
-                                append_path(&format!("arguments/{i}")),
-                                None
-                            ),),
-                            ..x
-                        })
-                        .collect(),
+                    args: capture_args!(self, call_expr.args),
                     ..call_expr
                 }
             ),
-            // Expr::New(new_expr) => todo!(),
+            // Same as Expr::Call, except callee only has the Expr case and args is Optional
+            Expr::New(new_expr) => capt!(
+                self,
+                NewExpr {
+                    callee: Box::new(self.capture_expr(*new_expr.callee, append_path("callee"), Some(CaptureExprContext::InsideCallee))),
+                    args: new_expr.args.map(|args| capture_args!(self, args)),
+                    ..new_expr
+                }
+            ),
             // Expr::Seq(seq_expr) => todo!(),
             expr @ Expr::Ident(_) => capt!(self, expr),
             expr @ (Expr::Lit(_) | Expr::This(_)) => expr,
