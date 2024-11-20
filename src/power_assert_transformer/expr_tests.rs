@@ -3,13 +3,19 @@ use swc_core::ecma::transforms::testing::test;
 #[allow(unused)]
 use super::tr;
 
-test!(
-    Default::default(),
-    tr,
-    basic_test,
+macro_rules! expr_test {
+    ($name: ident, $code: literal) => {
+        test!(
+            Default::default(),
+            tr,
+            $name,
+            &format!("import assert from 'assert';\n\n{}", $code)
+        );
+    };
+}
+expr_test!(
+    expr_basic,
     r#"
-    import assert from 'assert';
-
     assert(x.toUpperCase() == "BAR" ? x.y : x.z);
     "#
 );
