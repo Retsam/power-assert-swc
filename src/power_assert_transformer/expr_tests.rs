@@ -21,6 +21,15 @@ expr_test!(
 );
 
 expr_test!(
+    expr_array,
+    r#"
+    assert([1, 2, 3]);
+    assert([x, y])
+    assert([1, 2, 3].find((el) => el > 3));
+    "#
+);
+
+expr_test!(
     expr_classes,
     r#"
     assert(new x.y() instanceof SomeThing)

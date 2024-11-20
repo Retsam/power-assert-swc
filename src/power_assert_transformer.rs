@@ -109,7 +109,7 @@ impl PowerAssertTransformerVisitor {
         /// This macro is a shortcut for the common pattern of recursing `capture_expr` into 'sub expressions', e.g. the left and right side of BinExpr
         macro_rules! capture_subs_exprs {
             ($self: ident, $orig: ident, $expr_kind: ident {
-                $($field: ident $(as $path: literal)?),+
+                $($field: ident $(as $path: expr)?),+
             }) => {
                 $expr_kind { $($field: Box::new($self.capture_expr(*$orig.$field, append_path(path_from_field!($field $($path)?)), None))),+, ..$orig }
             };
@@ -118,7 +118,7 @@ impl PowerAssertTransformerVisitor {
             ($field: ident) => {
                 stringify!($field)
             };
-            ($field: ident $path: literal) => {
+            ($field: ident $path: expr) => {
                 $path
             };
         }
@@ -129,20 +129,20 @@ impl PowerAssertTransformerVisitor {
                 $args
                     .into_iter()
                     .enumerate()
-                    .map(|(i, x)| ExprOrSpread {
-                        expr: Box::new($self.capture_expr(
-                            *x.expr,
-                            append_path(&format!("arguments/{i}")),
-                            None,
-                        )),
-                        ..x
-                    })
+                    .map(|(i, arg)| capture_subs_exprs!(self, arg, ExprOrSpread {
+                        expr as &format!("arguments/{i}")
+                    }))
                     .collect::<Vec<_>>()
             };
         }
 
         match node.take() {
-            // Expr::Array(array_lit) => todo!(),
+            Expr::Array(array_lit) => capt!(self, ArrayLit {
+                elems: array_lit.elems.into_iter()
+                .enumerate()
+                .map(|(i, maybe_el)| maybe_el.map(|el| capture_subs_exprs!(self, el, ExprOrSpread { expr as &format!("elements/{i}") }))).collect(),
+                ..array_lit
+            }),
             // Expr::Object(object_lit) => todo!(),
             // Expr::Fn(fn_expr) => todo!(),
             Expr::Unary(unary_expr) => capt!(
