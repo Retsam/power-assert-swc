@@ -122,9 +122,7 @@ impl PowerAssertTransformerVisitor {
             };
         }
 
-        let inner_expr = node.take();
-        match inner_expr {
-            Expr::This(_) => capt!(self, inner_expr),
+        match node.take() {
             // Expr::Array(array_lit) => todo!(),
             // Expr::Object(object_lit) => todo!(),
             // Expr::Fn(fn_expr) => todo!(),
@@ -183,8 +181,8 @@ impl PowerAssertTransformerVisitor {
             ),
             // Expr::New(new_expr) => todo!(),
             // Expr::Seq(seq_expr) => todo!(),
-            Expr::Ident(_) => capt!(self, inner_expr),
-            Expr::Lit(_) => inner_expr,
+            expr @ Expr::Ident(_) => capt!(self, expr),
+            expr @ (Expr::Lit(_) | Expr::This(_)) => expr,
             // Expr::Tpl(tpl) => todo!(),
             // Expr::TaggedTpl(tagged_tpl) => todo!(),
             // Expr::Arrow(arrow_expr) => todo!(),
@@ -207,7 +205,7 @@ impl PowerAssertTransformerVisitor {
             // Expr::PrivateName(private_name) => todo!(),
             // Expr::OptChain(opt_chain_expr) => todo!(),
             // Expr::Invalid(invalid) => todo!(),
-            _ => inner_expr,
+            expr => expr,
         }
     }
 }
