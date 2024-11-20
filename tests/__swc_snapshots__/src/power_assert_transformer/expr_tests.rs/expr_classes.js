@@ -26,3 +26,10 @@ assert(_rec._expr(_rec._capt(_rec._capt(new (_rec._capt(x, "arguments/0/left/cal
     filepath: "test.js",
     line: 3
 }));
+
+assert(_rec._expr(_rec._capt(new class foo {
+}(), "arguments/0"), {
+    content: "assert(new (class foo {})())",
+    filepath: "test.js",
+    line: 5
+}));

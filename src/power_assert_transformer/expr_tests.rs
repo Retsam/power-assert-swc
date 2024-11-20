@@ -24,5 +24,7 @@ expr_test!(
     expr_classes,
     r#"
     assert(new x.y() instanceof SomeThing)
+
+    assert(new (class foo {})());
     "#
 );
