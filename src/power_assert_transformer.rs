@@ -86,13 +86,12 @@ impl PowerAssertTransformerVisitor {
         path: Vec<String>,
         ctx: Option<CaptureExprContext>,
     ) -> Expr {
-        macro_rules! append_path {
-            ($str: expr) => {{
-                let mut x = path.clone();
-                x.push($str.to_string());
-                x
-            }};
-        }
+        let append_path = |str: &str| {
+            let mut x = Vec::with_capacity(path.len() + 1);
+            x.clone_from(&path);
+            x.push(str.to_string());
+            x
+        };
         macro_rules! capt {
             ($self: ident, $expr: expr) => {{
                 let e = $expr.into();
@@ -106,12 +105,20 @@ impl PowerAssertTransformerVisitor {
             }};
         }
 
-        // This macro is a nice shortcut for the common pattern of recursing `capture_expr` into 'sub expressions', e.g. the left and right side of BinExpr
+        /// This macro is a shortcut for the common pattern of recursing `capture_expr` into 'sub expressions', e.g. the left and right side of BinExpr
         macro_rules! capture_subs_exprs {
             ($self: ident, $orig: ident, $expr_kind: ident {
-                $($field: ident as $path: literal),+
+                $($field: ident $(as $path: literal)?),+
             }) => {
-                $expr_kind { $($field: Box::new($self.capture_expr(*$orig.$field, append_path!($path), None))),+, ..$orig }
+                $expr_kind { $($field: Box::new($self.capture_expr(*$orig.$field, append_path(path_from_field!($field $($path)?)), None))),+, ..$orig }
+            };
+        }
+        macro_rules! path_from_field {
+            ($field: ident) => {
+                stringify!($field)
+            };
+            ($field: ident $path: literal) => {
+                $path
             };
         }
 
@@ -123,12 +130,12 @@ impl PowerAssertTransformerVisitor {
             // Expr::Fn(fn_expr) => todo!(),
             Expr::Unary(unary_expr) => capt!(
                 self,
-                capture_subs_exprs!(self, unary_expr, UnaryExpr { arg as "arg" })
+                capture_subs_exprs!(self, unary_expr, UnaryExpr { arg })
             ),
             // Expr::Update(update_expr) => todo!(),
             Expr::Bin(bin_expr) => capt!(
                 self,
-                capture_subs_exprs!(self, bin_expr, BinExpr { left as "left", right as "right" })
+                capture_subs_exprs!(self, bin_expr, BinExpr { left, right })
             ),
             // Expr::Assign(assign_expr) => todo!(),
             Expr::Member(member_expr) => capt!(
@@ -137,7 +144,7 @@ impl PowerAssertTransformerVisitor {
             ),
             // Expr::SuperProp(super_prop_expr) => todo!(),
             Expr::Cond(cond_expr) => {
-                capture_subs_exprs!(self, cond_expr, CondExpr { test as "test", cons as "consequent", alt as "alternate" })
+                capture_subs_exprs!(self, cond_expr, CondExpr { test, cons as "consequent", alt as "alternate" })
                     .into()
             }
             Expr::Call(call_expr) => capt!(
@@ -148,7 +155,7 @@ impl PowerAssertTransformerVisitor {
                             // We call self.capture_expr here, but not capt! - we don't necessarily capture the callee, but might capture parts of it
                             Callee::Expr(Box::new(self.capture_expr(
                                 *expr,
-                                append_path!("callee"),
+                                append_path("callee"),
                                 // We don't directly capture the callee (it's a function, not interesting to print out)
                                 //  ... but there might be sub-expressions that are capture-able
                                 // This flag will skip the capture in the recursive call
@@ -165,7 +172,7 @@ impl PowerAssertTransformerVisitor {
                         .map(|(i, x)| ExprOrSpread {
                             expr: Box::new(self.capture_expr(
                                 *x.expr,
-                                append_path!(format!("arguments/{i}")),
+                                append_path(&format!("arguments/{i}")),
                                 None
                             ),),
                             ..x

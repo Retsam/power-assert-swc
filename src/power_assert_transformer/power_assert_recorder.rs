@@ -5,10 +5,8 @@ const RECORDER_INSTANCE_NAME: &str = "_rec";
 const CAPTURE_METHOD_NAME: &str = "_capt";
 const EXPRESSION_WRAPPER_METHOD_NAME: &str = "_expr";
 
-macro_rules! this_expr {
-    () => {
-        Box::new(Expr::This(ThisExpr { span: DUMMY_SP }))
-    };
+fn this_expr() -> Box<Expr> {
+    Box::new(Expr::This(ThisExpr { span: DUMMY_SP }))
 }
 macro_rules! ident_name {
     ($sym: expr) => {
@@ -49,7 +47,7 @@ pub fn power_assert_recorder_definition() -> Stmt {
                                     expr: Box::new(Expr::Call(CallExpr {
                                         callee: Callee::Expr(Box::new(Expr::Member(MemberExpr {
                                             obj: Box::new(Expr::Member(MemberExpr {
-                                                obj: this_expr!(),
+                                                obj: this_expr(),
                                                 prop: ident_name!("captured"),
                                                 ..Default::default()
                                             })),
@@ -101,7 +99,7 @@ pub fn power_assert_recorder_definition() -> Stmt {
                                         name: ident_name!("capturedValues"),
                                         init: Some(Box::new(Expr::Member(MemberExpr {
                                             span: DUMMY_SP,
-                                            obj: this_expr!(),
+                                            obj: this_expr(),
                                             prop: ident_name!("captured"),
                                         }))),
                                         definite: false,
@@ -117,7 +115,7 @@ pub fn power_assert_recorder_definition() -> Stmt {
                                         left: AssignTarget::Simple(SimpleAssignTarget::Member(
                                             MemberExpr {
                                                 span: DUMMY_SP,
-                                                obj: this_expr!(),
+                                                obj: this_expr(),
                                                 prop: ident_name!("captured"),
                                             },
                                         )),
