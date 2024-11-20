@@ -21,8 +21,8 @@ class _powerAssertRecorder {
     }
 }
 var _rec = new _powerAssertRecorder();
-assert(_rec._expr(_rec._capt(!_rec._capt(isNaN(_rec._capt(a, "arguments/0/argument/arguments/0")), "arguments/0/argument"), "arguments/0"), {
-    content: "assert(!isNaN(a))",
+assert(_rec._expr(_rec._capt(_rec._capt(_rec._capt(x, "arguments/0/left/callee/object").toUpperCase(), "arguments/0/left") == "BAR", "arguments/0"), {
+    content: 'assert(x.toUpperCase() == "BAR")',
     filepath: "test.js",
     line: 3
 }));

@@ -90,7 +90,7 @@ impl PowerAssertTransformerVisitor {
         }
         macro_rules! capt {
             ($self: ident, $expr: expr) => {{
-                let e = $expr;
+                let e = $expr.into();
                 if ctx == Some(CaptureExprContext::InsideCallee) {
                     e
                 } else {
@@ -117,10 +117,20 @@ impl PowerAssertTransformerVisitor {
                     )),
                     ..unary_expr
                 }
-                .into()
             ),
             // Expr::Update(update_expr) => todo!(),
-            // Expr::Bin(bin_expr) => todo!(),
+            Expr::Bin(bin_expr) => capt!(
+                self,
+                BinExpr {
+                    left: Box::new(self.capture_expr(*bin_expr.left, append_path!("left"), None)),
+                    right: Box::new(self.capture_expr(
+                        *bin_expr.right,
+                        append_path!("right"),
+                        None
+                    )),
+                    ..bin_expr
+                }
+            ),
             // Expr::Assign(assign_expr) => todo!(),
             Expr::Member(member_expr) => capt!(
                 self,
@@ -132,7 +142,6 @@ impl PowerAssertTransformerVisitor {
                     )),
                     ..member_expr
                 }
-                .into()
             ),
             // Expr::SuperProp(super_prop_expr) => todo!(),
             // Expr::Cond(cond_expr) => todo!(),
@@ -169,7 +178,6 @@ impl PowerAssertTransformerVisitor {
                         .collect(),
                     ..call_expr
                 }
-                .into()
             ),
             // Expr::New(new_expr) => todo!(),
             // Expr::Seq(seq_expr) => todo!(),
@@ -337,7 +345,7 @@ test!(
     r#"
     import assert from 'assert';
 
-    assert(!isNaN(a))
+    assert(x.toUpperCase() == "BAR");
     "#
 );
 
