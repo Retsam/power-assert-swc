@@ -106,6 +106,15 @@ impl PowerAssertTransformerVisitor {
             }};
         }
 
+        // This macro is a nice shortcut for the common pattern of recursing `capture_expr` into 'sub expressions', e.g. the left and right side of BinExpr
+        macro_rules! capture_subs_exprs {
+            ($self: ident, $orig: ident, $expr_kind: ident {
+                $($field: ident as $path: literal),+
+            }) => {
+                $expr_kind { $($field: Box::new($self.capture_expr(*$orig.$field, append_path!($path), None))),+, ..$orig }
+            };
+        }
+
         let inner_expr = node.take();
         match inner_expr {
             Expr::This(_) => capt!(self, inner_expr),
@@ -114,52 +123,23 @@ impl PowerAssertTransformerVisitor {
             // Expr::Fn(fn_expr) => todo!(),
             Expr::Unary(unary_expr) => capt!(
                 self,
-                UnaryExpr {
-                    arg: Box::new(self.capture_expr(
-                        *unary_expr.arg,
-                        append_path!("argument"),
-                        None
-                    )),
-                    ..unary_expr
-                }
+                capture_subs_exprs!(self, unary_expr, UnaryExpr { arg as "arg" })
             ),
             // Expr::Update(update_expr) => todo!(),
             Expr::Bin(bin_expr) => capt!(
                 self,
-                BinExpr {
-                    left: Box::new(self.capture_expr(*bin_expr.left, append_path!("left"), None)),
-                    right: Box::new(self.capture_expr(
-                        *bin_expr.right,
-                        append_path!("right"),
-                        None
-                    )),
-                    ..bin_expr
-                }
+                capture_subs_exprs!(self, bin_expr, BinExpr { left as "left", right as "right" })
             ),
             // Expr::Assign(assign_expr) => todo!(),
             Expr::Member(member_expr) => capt!(
                 self,
-                MemberExpr {
-                    obj: Box::new(self.capture_expr(
-                        *member_expr.obj,
-                        append_path!("object"),
-                        None
-                    )),
-                    ..member_expr
-                }
+                capture_subs_exprs!(self, member_expr, MemberExpr { obj as "object" })
             ),
             // Expr::SuperProp(super_prop_expr) => todo!(),
-            Expr::Cond(cond_expr) => CondExpr {
-                test: Box::new(self.capture_expr(*cond_expr.test, append_path!("test"), None)),
-                cons: Box::new(self.capture_expr(
-                    *cond_expr.cons,
-                    append_path!("consequent"),
-                    None,
-                )),
-                alt: Box::new(self.capture_expr(*cond_expr.alt, append_path!("alternate"), None)),
-                ..cond_expr
+            Expr::Cond(cond_expr) => {
+                capture_subs_exprs!(self, cond_expr, CondExpr { test as "test", cons as "consequent", alt as "alternate" })
+                    .into()
             }
-            .into(),
             Expr::Call(call_expr) => capt!(
                 self,
                 CallExpr {
