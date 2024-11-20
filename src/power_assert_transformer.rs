@@ -17,6 +17,7 @@ use swc_core::{
     },
 };
 
+mod expr_tests;
 mod flatten_member_exprs;
 mod power_assert_recorder;
 /// This is the equivalent of babel-plugin-espower - transforms plain assertion calls into power-assert calls
@@ -335,17 +336,6 @@ test!(
     r#"
     import assert from 'assert';
     assert(a)
-    "#
-);
-
-test!(
-    Default::default(),
-    tr,
-    expr_test,
-    r#"
-    import assert from 'assert';
-
-    assert(x.toUpperCase() == "BAR" ? x.y : x.z);
     "#
 );
 
