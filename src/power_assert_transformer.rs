@@ -195,7 +195,12 @@ impl PowerAssertTransformerVisitor {
                     ..new_expr
                 }
             ),
-            // Expr::Seq(seq_expr) => todo!(),
+            Expr::Seq(seq_expr) => SeqExpr {
+                exprs: seq_expr.exprs.into_iter()
+                .enumerate()
+                .map(|(i, expr)| Box::new(self.capture_expr(*expr, append_path(&format!("expressions/{i}")), None))).collect(),
+                ..seq_expr
+            }.into(),
             expr @ Expr::Ident(_) => capt!(self, expr),
             expr @ (Expr::Lit(_) | Expr::This(_) | Expr::Class(_)) => expr,
             // Expr::Tpl(tpl) => todo!(),
@@ -204,7 +209,7 @@ impl PowerAssertTransformerVisitor {
             // Expr::Yield(yield_expr) => todo!(),
             // Expr::MetaProp(meta_prop_expr) => todo!(),
             // Expr::Await(await_expr) => todo!(),
-            // Expr::Paren(paren_expr) => todo!(),
+            Expr::Paren(paren_expr) => ParenExpr { expr: Box::new(self.capture_expr(*paren_expr.expr, path, ctx)), ..paren_expr }.into(),
             // Expr::JSXMember(jsxmember_expr) => todo!(),
             // Expr::JSXNamespacedName(jsxnamespaced_name) => todo!(),
             // Expr::JSXEmpty(jsxempty_expr) => todo!(),

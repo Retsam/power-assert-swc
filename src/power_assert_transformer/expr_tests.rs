@@ -37,3 +37,10 @@ expr_test!(
     assert(new (class foo {})());
     "#
 );
+
+expr_test!(
+    expr_comma,
+    r#"
+    assert((x, y))
+    "#
+);
