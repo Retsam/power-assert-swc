@@ -28,6 +28,11 @@ pub struct PowerAssertTransformerVisitor {
     source_map: Arc<dyn SourceMapper>,
 }
 
+#[derive(PartialEq)]
+enum CaptureExprContext {
+    InsideCallee,
+}
+
 impl PowerAssertTransformerVisitor {
     pub fn new(file_name: String, source_map: Arc<dyn SourceMapper>) -> Self {
         Self {
@@ -47,7 +52,7 @@ impl PowerAssertTransformerVisitor {
     }
 
     fn transform_assert_call(&mut self, node: &mut Expr, assert_span: Span) -> Result<(), String> {
-        let expr = self.capture_expr(node.take(), vec!["arguments/0".into()]);
+        let expr = self.capture_expr(node.take(), vec!["arguments/0".into()], None);
         if !self.needs_recorder {
             *node = expr;
             return Ok(());
@@ -70,7 +75,12 @@ impl PowerAssertTransformerVisitor {
         Ok(())
     }
 
-    fn capture_expr(&mut self, mut node: Expr, path: Vec<String>) -> Expr {
+    fn capture_expr(
+        &mut self,
+        mut node: Expr,
+        path: Vec<String>,
+        ctx: Option<CaptureExprContext>,
+    ) -> Expr {
         macro_rules! append_path {
             ($str: expr) => {{
                 let mut x = path.clone();
@@ -78,12 +88,16 @@ impl PowerAssertTransformerVisitor {
                 x
             }};
         }
-
         macro_rules! capt {
             ($self: ident, $expr: expr) => {{
-                self.found_assertion = true;
-                self.needs_recorder = true;
-                wrap_in_capture($expr, path.join("/"))
+                let e = $expr;
+                if ctx == Some(CaptureExprContext::InsideCallee) {
+                    e
+                } else {
+                    self.found_assertion = true;
+                    self.needs_recorder = true;
+                    wrap_in_capture(e, path.join("/"))
+                }
             }};
         }
 
@@ -96,7 +110,11 @@ impl PowerAssertTransformerVisitor {
             Expr::Unary(unary_expr) => capt!(
                 self,
                 UnaryExpr {
-                    arg: Box::new(self.capture_expr(*unary_expr.arg, append_path!("argument"))),
+                    arg: Box::new(self.capture_expr(
+                        *unary_expr.arg,
+                        append_path!("argument"),
+                        None
+                    )),
                     ..unary_expr
                 }
                 .into()
@@ -104,20 +122,48 @@ impl PowerAssertTransformerVisitor {
             // Expr::Update(update_expr) => todo!(),
             // Expr::Bin(bin_expr) => todo!(),
             // Expr::Assign(assign_expr) => todo!(),
-            // Expr::Member(member_expr) => todo!(),
+            Expr::Member(member_expr) => capt!(
+                self,
+                MemberExpr {
+                    obj: Box::new(self.capture_expr(
+                        *member_expr.obj,
+                        append_path!("object"),
+                        None
+                    )),
+                    ..member_expr
+                }
+                .into()
+            ),
             // Expr::SuperProp(super_prop_expr) => todo!(),
             // Expr::Cond(cond_expr) => todo!(),
             Expr::Call(call_expr) => capt!(
                 self,
                 CallExpr {
+                    callee: match call_expr.callee {
+                        Callee::Expr(expr) => {
+                            // We call self.capture_expr here, but not capt! - we don't necessarily capture the callee, but might capture parts of it
+                            Callee::Expr(Box::new(self.capture_expr(
+                                *expr,
+                                append_path!("callee"),
+                                // We don't directly capture the callee (it's a function, not interesting to print out)
+                                //  ... but there might be sub-expressions that are capture-able
+                                // This flag will skip the capture in the recursive call
+                                Some(CaptureExprContext::InsideCallee),
+                            )))
+                        }
+                        // Nothing to capture in these cases
+                        Callee::Super(_) | Callee::Import(_) => call_expr.callee,
+                    },
                     args: call_expr
                         .args
                         .into_iter()
                         .enumerate()
                         .map(|(i, x)| ExprOrSpread {
-                            expr: Box::new(
-                                self.capture_expr(*x.expr, append_path!(format!("arguments/{i}"))),
-                            ),
+                            expr: Box::new(self.capture_expr(
+                                *x.expr,
+                                append_path!(format!("arguments/{i}")),
+                                None
+                            ),),
                             ..x
                         })
                         .collect(),
