@@ -123,6 +123,15 @@ impl PowerAssertTransformerVisitor {
             };
         }
 
+        // Captures a single sub expr, with no change in the path
+        macro_rules! capture_sub_expr {
+            ($self: ident, $orig: ident.$field: ident) => {{
+                let mut new_expr = $orig.clone();
+                *new_expr.$field = $self.capture_expr(*$orig.$field, path.clone(), None);
+                new_expr.into()
+            }};
+        }
+
         // Common logic shared between Expr::Call and Expr::New
         macro_rules! capture_args {
             ($self: ident, $args: expr) => {
@@ -159,7 +168,6 @@ impl PowerAssertTransformerVisitor {
                 self,
                 capture_subs_exprs!(self, member_expr, MemberExpr { obj as "object" })
             ),
-            // Expr::SuperProp(super_prop_expr) => todo!(),
             Expr::Cond(cond_expr) => {
                 capture_subs_exprs!(self, cond_expr, CondExpr { test, cons as "consequent", alt as "alternate" })
                     .into()
@@ -201,15 +209,20 @@ impl PowerAssertTransformerVisitor {
                 .map(|(i, expr)| Box::new(self.capture_expr(*expr, append_path(&format!("expressions/{i}")), None))).collect(),
                 ..seq_expr
             }.into(),
-            expr @ Expr::Ident(_) => capt!(self, expr),
-            expr @ (Expr::Lit(_) | Expr::This(_) | Expr::Class(_)) => expr,
+            expr @ (Expr::Ident(_) | Expr::SuperProp(_)) => capt!(self, expr),
+            // "Boring" cases where the expr is just a thin wrapper and we just want to recurse into the wrapper
+            Expr::Paren(paren_expr) => capture_sub_expr!(self, paren_expr.expr),
+            Expr::TsAs(ts_as_expr) => capture_sub_expr!(self, ts_as_expr.expr),
+            Expr::TsInstantiation(ts_instantiation) => capture_sub_expr!(self, ts_instantiation.expr),
+
+            // Exprs that are just ignored, neither captured nor recursed into
+            expr @ (Expr::Lit(_) | Expr::This(_) | Expr::Class(_) | Expr::Invalid(_)) => expr,
             // Expr::Tpl(tpl) => todo!(),
             // Expr::TaggedTpl(tagged_tpl) => todo!(),
             // Expr::Arrow(arrow_expr) => todo!(),
             // Expr::Yield(yield_expr) => todo!(),
             // Expr::MetaProp(meta_prop_expr) => todo!(),
             // Expr::Await(await_expr) => todo!(),
-            Expr::Paren(paren_expr) => ParenExpr { expr: Box::new(self.capture_expr(*paren_expr.expr, path, ctx)), ..paren_expr }.into(),
             // Expr::JSXMember(jsxmember_expr) => todo!(),
             // Expr::JSXNamespacedName(jsxnamespaced_name) => todo!(),
             // Expr::JSXEmpty(jsxempty_expr) => todo!(),
@@ -218,12 +231,9 @@ impl PowerAssertTransformerVisitor {
             // Expr::TsTypeAssertion(ts_type_assertion) => todo!(),
             // Expr::TsConstAssertion(ts_const_assertion) => todo!(),
             // Expr::TsNonNull(ts_non_null_expr) => todo!(),
-            // Expr::TsAs(ts_as_expr) => todo!(),
-            // Expr::TsInstantiation(ts_instantiation) => todo!(),
             // Expr::TsSatisfies(ts_satisfies_expr) => todo!(),
             // Expr::PrivateName(private_name) => todo!(),
             // Expr::OptChain(opt_chain_expr) => todo!(),
-            // Expr::Invalid(invalid) => todo!(),
             expr => expr,
         }
     }

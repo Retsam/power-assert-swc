@@ -35,6 +35,13 @@ expr_test!(
     assert(new x.y() instanceof SomeThing)
 
     assert(new (class foo {})());
+
+    class Foo extends Bar {
+        constructor() {
+            super();
+            assert(super.x)
+        }
+    }
     "#
 );
 

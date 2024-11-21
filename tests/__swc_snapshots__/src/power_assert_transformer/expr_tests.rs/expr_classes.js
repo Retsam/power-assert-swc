@@ -32,3 +32,13 @@ assert(_rec._expr(_rec._capt(new class foo {
     filepath: "input/test.js",
     line: 5
 }));
+class Foo extends Bar {
+    constructor(){
+        super();
+        assert(_rec._expr(_rec._capt(super.x, "arguments/0"), {
+            content: "assert(super.x)",
+            filepath: "input/test.js",
+            line: 10
+        }));
+    }
+}
