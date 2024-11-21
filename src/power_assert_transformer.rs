@@ -64,19 +64,16 @@ impl PowerAssertTransformerVisitor {
             .map_err(|_| "Failed to get source_code for expr")?;
 
         // Currently the span_to_lines logic is panicking in WASM - until I can figure that out, just hard-code a line
-        let line_num = if cfg!(target_family = "wasm") {
-            4
-        } else {
-            self.source_map
-                .span_to_lines(assert_span)
-                .map_err(|_| "Failed to get line for expr")
-                .and_then(|lines| {
-                    if lines.lines.is_empty() {
-                        return Err("Failed to get line for expr: empty lines list");
-                    }
-                    Ok(lines.lines[0].line_index)
-                })?
-        };
+        let line_num = self
+            .source_map
+            .span_to_lines(assert_span)
+            .map_err(|_| "Failed to get line for expr")
+            .and_then(|lines| {
+                if lines.lines.is_empty() {
+                    return Err("Failed to get line for expr: empty lines list");
+                }
+                Ok(lines.lines[0].line_index)
+            })?;
         *node = wrap_in_record(expr, &self.file_name, &source_code, line_num);
         Ok(())
     }
