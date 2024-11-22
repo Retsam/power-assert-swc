@@ -252,43 +252,14 @@ impl VisitMut for PowerAssertTransformerVisitor {
             let _ = self.transform_assert_call(expr, assert_span);
         }
     }
-
     fn visit_mut_function(&mut self, node: &mut Function) {
-        let orig_needs_recorder = self.needs_recorder;
-        node.visit_mut_children_with(self);
-        if self.needs_recorder {
-            if let Some(ref mut body) = node.body {
-                self.needs_recorder = orig_needs_recorder;
-                body.stmts.insert(0, new_power_assert_recorder_stmt());
-            }
-        }
+        node.power_assert(self)
+    }
+    fn visit_mut_constructor(&mut self, node: &mut Constructor) {
+        node.power_assert(self)
     }
     fn visit_mut_arrow_expr(&mut self, node: &mut ArrowExpr) {
-        let orig_needs_recorder = self.needs_recorder;
-        node.visit_mut_children_with(self);
-        if self.needs_recorder {
-            let stmt = new_power_assert_recorder_stmt();
-            match &mut *node.body {
-                BlockStmtOrExpr::BlockStmt(block) => {
-                    block.stmts.insert(0, stmt);
-                }
-                // Need to 'un-shorthand' the shorthand form
-                BlockStmtOrExpr::Expr(expr) => {
-                    *node.body = BlockStmt {
-                        stmts: vec![
-                            stmt,
-                            Stmt::Expr(ExprStmt {
-                                expr: expr.take(),
-                                ..Default::default()
-                            }),
-                        ],
-                        ..Default::default()
-                    }
-                    .into();
-                }
-            };
-            self.needs_recorder = orig_needs_recorder;
-        }
+        node.power_assert(self);
     }
 
     fn visit_mut_program(&mut self, node: &mut Program) {
@@ -317,6 +288,60 @@ impl VisitMut for PowerAssertTransformerVisitor {
         }
     }
 }
+
+/// Trait used by things that contain power asserts and need to inject the recorder element: functions, arrow functions, constructors, generators, etc
+trait PowerAssertContainer: VisitMutWith<PowerAssertTransformerVisitor> {
+    fn power_assert(&mut self, visitor: &mut PowerAssertTransformerVisitor) {
+        let orig_needs_recorder = visitor.needs_recorder;
+        self.visit_mut_children_with(visitor);
+        if visitor.needs_recorder {
+            self.insert_recorder(new_power_assert_recorder_stmt());
+            visitor.needs_recorder = orig_needs_recorder;
+        }
+    }
+    fn insert_recorder(&mut self, recorder_stmt: Stmt);
+}
+
+macro_rules! normal_container_impl {
+    ($kind:ident) => {
+        impl PowerAssertContainer for $kind {
+            fn insert_recorder(&mut self, recorder_stmt: Stmt) {
+                if let Some(ref mut body) = self.body {
+                    body.stmts.insert(0, recorder_stmt);
+                }
+                // it'd be very weird if we didn't have a body but somehow tripped 'needs_recorder'
+            }
+        }
+    };
+}
+
+normal_container_impl!(Function);
+normal_container_impl!(Constructor);
+
+impl PowerAssertContainer for ArrowExpr {
+    fn insert_recorder(&mut self, recorder_stmt: Stmt) {
+        match &mut *self.body {
+            BlockStmtOrExpr::BlockStmt(block) => {
+                block.stmts.insert(0, recorder_stmt);
+            }
+            // Need to 'un-shorthand' the shorthand form
+            BlockStmtOrExpr::Expr(expr) => {
+                *self.body = BlockStmt {
+                    stmts: vec![
+                        recorder_stmt,
+                        Stmt::Expr(ExprStmt {
+                            expr: expr.take(),
+                            ..Default::default()
+                        }),
+                    ],
+                    ..Default::default()
+                }
+                .into();
+            }
+        };
+    }
+}
+
 #[allow(unused)]
 fn tr(tester: &mut Tester) -> impl Pass {
     (
@@ -355,6 +380,25 @@ test!(
         }
     }
     "#
+);
+
+test!(
+    Default::default(),
+    tr,
+    assert_inside_method,
+    r#"
+class C {
+    constructor() {
+        assert(a)
+    }
+    m1() {
+        assert(a);
+    }
+    #m2() {
+        assert(a);
+    }
+}
+"#
 );
 
 test!(

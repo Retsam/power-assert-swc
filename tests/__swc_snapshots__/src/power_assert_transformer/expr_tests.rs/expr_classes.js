@@ -34,6 +34,7 @@ assert(_rec._expr(_rec._capt(new class foo {
 }));
 class Foo extends Bar {
     constructor(){
+        var _rec = new _powerAssertRecorder();
         super();
         assert(_rec._expr(_rec._capt(super.x, "arguments/0"), {
             content: "assert(super.x)",
