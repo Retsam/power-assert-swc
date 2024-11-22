@@ -190,7 +190,31 @@ pub fn new_power_assert_recorder_stmt() -> Stmt {
     })))
 }
 
-pub fn wrap_in_record(expr: Expr, file_path: &str, source: &str, line: usize) -> Expr {
+#[derive(Default, Clone, Copy)]
+pub struct RecorderContext {
+    pub is_async: bool,
+    pub is_generator: bool,
+}
+pub fn wrap_in_record(
+    expr: Expr,
+    file_path: &str,
+    source: &str,
+    line: usize,
+    opts: RecorderContext,
+) -> Expr {
+    let mut props: Vec<(&str, Box<Expr>)> = vec![
+        ("content", source.into()),
+        ("filepath", file_path.into()),
+        ("line", line.into()),
+    ];
+
+    if opts.is_async {
+        props.push(("async", true.into()));
+    }
+    if opts.is_generator {
+        props.push(("generator", true.into()));
+    }
+
     Expr::Call(CallExpr {
         callee: Callee::Expr(Box::new(Expr::Member(MemberExpr {
             obj: Into::<Ident>::into("_rec").into(),
@@ -200,23 +224,16 @@ pub fn wrap_in_record(expr: Expr, file_path: &str, source: &str, line: usize) ->
         args: vec![
             expr.into(),
             Expr::Object(ObjectLit {
-                props: vec![
-                    Prop::KeyValue(KeyValueProp {
-                        key: ident_name!("content"),
-                        value: source.into(),
+                props: props
+                    .into_iter()
+                    .map(|(k, v)| {
+                        Prop::KeyValue(KeyValueProp {
+                            key: ident_name!(k),
+                            value: v,
+                        })
+                        .into()
                     })
-                    .into(),
-                    Prop::KeyValue(KeyValueProp {
-                        key: ident_name!("filepath"),
-                        value: file_path.into(),
-                    })
-                    .into(),
-                    Prop::KeyValue(KeyValueProp {
-                        key: ident_name!("line"),
-                        value: line.into(),
-                    })
-                    .into(),
-                ],
+                    .collect::<Vec<_>>(),
                 ..Default::default()
             })
             .into(),

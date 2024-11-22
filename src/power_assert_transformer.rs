@@ -3,6 +3,7 @@ use std::sync::Arc;
 use flatten_member_exprs::flatten_member_exprs;
 use power_assert_recorder::{
     new_power_assert_recorder_stmt, power_assert_recorder_definition, wrap_in_record,
+    RecorderContext,
 };
 use swc_core::{
     common::{util::take::Take, Mark, SourceMapper, Span, Spanned},
@@ -27,6 +28,8 @@ pub struct PowerAssertTransformerVisitor {
 
     file_name: String,
     source_map: Arc<dyn SourceMapper>,
+
+    recorder_context: RecorderContext,
 }
 
 impl PowerAssertTransformerVisitor {
@@ -36,6 +39,7 @@ impl PowerAssertTransformerVisitor {
             needs_recorder: false,
             file_name,
             source_map,
+            recorder_context: <_>::default(),
         }
     }
 
@@ -72,7 +76,13 @@ impl PowerAssertTransformerVisitor {
                     Ok(lines.lines[0].line_index)
                 })?
         };
-        *node = wrap_in_record(expr, &self.file_name, &source_code, line_num);
+        *node = wrap_in_record(
+            expr,
+            &self.file_name,
+            &source_code,
+            line_num,
+            self.recorder_context,
+        );
         Ok(())
     }
 }
@@ -131,30 +141,50 @@ impl VisitMut for PowerAssertTransformerVisitor {
 trait PowerAssertContainer: VisitMutWith<PowerAssertTransformerVisitor> {
     fn power_assert(&mut self, visitor: &mut PowerAssertTransformerVisitor) {
         let orig_needs_recorder = visitor.needs_recorder;
+        let orig_recorder_context = visitor.recorder_context;
+        visitor.recorder_context = self.recorder_context();
         self.visit_mut_children_with(visitor);
         if visitor.needs_recorder {
             self.insert_recorder(new_power_assert_recorder_stmt());
-            visitor.needs_recorder = orig_needs_recorder;
         }
+        visitor.recorder_context = orig_recorder_context;
+        visitor.needs_recorder = orig_needs_recorder;
     }
     fn insert_recorder(&mut self, recorder_stmt: Stmt);
+    fn recorder_context(&mut self) -> RecorderContext;
 }
 
 macro_rules! normal_container_impl {
-    ($kind:ident) => {
-        impl PowerAssertContainer for $kind {
-            fn insert_recorder(&mut self, recorder_stmt: Stmt) {
-                if let Some(ref mut body) = self.body {
-                    body.stmts.insert(0, recorder_stmt);
-                }
-                // it'd be very weird if we didn't have a body but somehow tripped 'needs_recorder'
+    () => {
+        fn insert_recorder(&mut self, recorder_stmt: Stmt) {
+            if let Some(ref mut body) = self.body {
+                body.stmts.insert(0, recorder_stmt);
+            }
+            // it'd be very weird if we didn't have a body but somehow tripped 'needs_recorder'
+        }
+    };
+}
+macro_rules! normal_recorder_context_impl {
+    () => {
+        fn recorder_context(&mut self) -> RecorderContext {
+            RecorderContext {
+                is_async: self.is_async,
+                is_generator: self.is_generator,
             }
         }
     };
 }
 
-normal_container_impl!(Function);
-normal_container_impl!(Constructor);
+impl PowerAssertContainer for Function {
+    normal_container_impl!();
+    normal_recorder_context_impl!();
+}
+impl PowerAssertContainer for Constructor {
+    normal_container_impl!();
+    fn recorder_context(&mut self) -> RecorderContext {
+        <_>::default()
+    }
+}
 
 impl PowerAssertContainer for ArrowExpr {
     fn insert_recorder(&mut self, recorder_stmt: Stmt) {
@@ -178,6 +208,7 @@ impl PowerAssertContainer for ArrowExpr {
             }
         };
     }
+    normal_recorder_context_impl!();
 }
 
 #[allow(unused)]
@@ -210,12 +241,30 @@ test!(
     // arrow shorthand
     const f4 = () => assert(a);
 
+    // async
+    async function f5() {
+        assert(a);
+    }
+
+    // async arrow
+    const f6 = async () => assert(a);
+
     // nested
     function outer() {
-        assert(true);
+        assert(a);
         function inner() {
             assert(a);
         }
+    }
+
+    // generator
+    function *gen() {
+        assert(a);
+    }
+
+    // async generator
+    async function *async_gen() {
+        assert(a);
     }
     "#
 );
