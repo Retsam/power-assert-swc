@@ -54,15 +54,61 @@ const f4 = ()=>{
         line: 13
     }));
 };
+// async
+async function f5() {
+    var _rec = new _powerAssertRecorder();
+    assert(_rec._expr(_rec._capt(a, "arguments/0"), {
+        content: "assert(a)",
+        filepath: "input/test.js",
+        line: 17,
+        async: true
+    }));
+}
+// async arrow
+const f6 = async ()=>{
+    var _rec = new _powerAssertRecorder();
+    assert(_rec._expr(_rec._capt(a, "arguments/0"), {
+        content: "assert(a)",
+        filepath: "input/test.js",
+        line: 21,
+        async: true
+    }));
+};
 // nested
 function outer() {
-    assert(true);
+    var _rec = new _powerAssertRecorder();
+    assert(_rec._expr(_rec._capt(a, "arguments/0"), {
+        content: "assert(a)",
+        filepath: "input/test.js",
+        line: 25
+    }));
     function inner() {
         var _rec = new _powerAssertRecorder();
         assert(_rec._expr(_rec._capt(a, "arguments/0"), {
             content: "assert(a)",
             filepath: "input/test.js",
-            line: 19
+            line: 27
         }));
     }
+}
+// generator
+function* gen() {
+    var _rec = new _powerAssertRecorder();
+    assert(_rec._expr(_rec._capt(a, "arguments/0"), {
+        content: "assert(a)",
+        filepath: "input/test.js",
+        line: 33,
+        generator: true
+    }));
+}
+// async generator
+async function* async_gen() {
+    var _rec = new _powerAssertRecorder();
+    assert(_rec._expr(_rec._capt(a, "arguments/0"), {
+        content: "assert(a)",
+        filepath: "input/test.js",
+        line: 38,
+        async: true,
+        generator: true
+    }));
 }
