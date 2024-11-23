@@ -93,7 +93,7 @@ impl PowerAssertTransformerVisitor {
                 self,
                 capture_subs_exprs!(self, bin_expr, BinExpr { left, right })
             ),
-            // Expr::Assign(assign_expr) => todo!(),
+            Expr::Assign(assign_expr) => capt!(self, capture_subs_exprs!(self, assign_expr, AssignExpr { right })),
             Expr::Member(member_expr) => capt!(
                 self,
                 capture_subs_exprs!(self, member_expr, MemberExpr { obj as "object" })

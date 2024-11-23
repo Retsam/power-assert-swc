@@ -21,6 +21,15 @@ expr_test!(
 );
 
 expr_test!(
+    expr_assign,
+    r#"
+    assert(x = y.z);
+    assert(a.b = y.z);
+    assert((a.b.c = y.z = z));
+    "#
+);
+
+expr_test!(
     expr_array,
     r#"
     assert([1, 2, 3]);
