@@ -36,3 +36,8 @@ assert(_rec._expr(_rec._capt(a.b.c = _rec._capt(y.z = _rec._capt(z, "arguments/0
     filepath: "input/test.js",
     line: 5
 }));
+assert(_rec._expr(_rec._capt(_rec._capt(x.y++, "arguments/0/left") == _rec._capt(y++, "arguments/0/right"), "arguments/0"), {
+    content: "assert(x.y++ == y++)",
+    filepath: "input/test.js",
+    line: 6
+}));

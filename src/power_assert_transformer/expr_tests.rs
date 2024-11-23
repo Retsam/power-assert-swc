@@ -26,6 +26,7 @@ expr_test!(
     assert(x = y.z);
     assert(a.b = y.z);
     assert((a.b.c = y.z = z));
+    assert(x.y++ == y++);
     "#
 );
 

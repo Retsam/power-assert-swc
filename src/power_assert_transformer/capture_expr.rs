@@ -88,7 +88,6 @@ impl PowerAssertTransformerVisitor {
                 self,
                 capture_subs_exprs!(self, unary_expr, UnaryExpr { arg })
             ),
-            // Expr::Update(update_expr) => todo!(),
             Expr::Bin(bin_expr) => capt!(
                 self,
                 capture_subs_exprs!(self, bin_expr, BinExpr { left, right })
@@ -139,7 +138,7 @@ impl PowerAssertTransformerVisitor {
                 .map(|(i, expr)| Box::new(self.capture_expr(*expr, append_path(&format!("expressions/{i}")), None))).collect(),
                 ..seq_expr
             }.into(),
-            expr @ (Expr::Ident(_) | Expr::SuperProp(_)) => capt!(self, expr),
+            expr @ (Expr::Ident(_) | Expr::SuperProp(_) | Expr::Update(_)) => capt!(self, expr),
             // "Boring" cases where the expr is just a thin wrapper and we just want to recurse into the wrapper
             Expr::Paren(paren_expr) => capture_sub_expr!(self, paren_expr.expr),
             Expr::TsAs(ts_as_expr) => capture_sub_expr!(self, ts_as_expr.expr),
