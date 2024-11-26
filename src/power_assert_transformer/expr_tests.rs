@@ -56,6 +56,28 @@ expr_test!(
 );
 
 expr_test!(
+    expr_obj,
+    r#"
+assert({
+    x,
+    x: y,
+    func: function () {
+        return this.x + 1;
+    },
+    meth() {
+        return this.x + 2;
+    },
+    get x() {
+        return this.x + 3;
+    },
+    set x(val) {
+        this.x = val;
+    },
+}.func());
+"#
+);
+
+expr_test!(
     expr_comma,
     r#"
     assert((x, y))

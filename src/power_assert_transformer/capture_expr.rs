@@ -82,7 +82,31 @@ impl PowerAssertTransformerVisitor {
                 .map(|(i, maybe_el)| maybe_el.map(|el| capture_subs_exprs!(self, el, ExprOrSpread { expr as &format!("elements/{i}") }))).collect(),
                 ..array_lit
             }),
-            // Expr::Object(object_lit) => todo!(),
+            Expr::Object(object_lit) => {
+                capt!(self, ObjectLit {
+                    props: object_lit.props.into_iter()
+                    .enumerate()
+                    .map(|(i, prop)| {
+                        if let PropOrSpread::Prop(inner_prop) = prop {
+                            if let Prop::KeyValue(kv) = *inner_prop {
+                                let key = if let Some(computed) = kv.key.as_computed().cloned() {
+                                    capture_subs_exprs!(self, computed, ComputedPropName {
+                                        expr as &format!("properties/{i}/key")
+                                    }).into()
+                                } else {
+                                    kv.key
+                                };
+                                Prop::KeyValue(KeyValueProp {
+                                    key,
+                                    value: Box::new(self.capture_expr(*kv.value, append_path(&format!("properties/{i}/value")), None)),
+                                })
+                                .into()
+                            } else { inner_prop.into() }
+                        } else { prop }
+                    }).collect(),
+                    ..object_lit
+                })
+            },
             // Expr::Fn(fn_expr) => todo!(),
             Expr::Unary(unary_expr) => capt!(
                 self,
@@ -139,6 +163,7 @@ impl PowerAssertTransformerVisitor {
                 ..seq_expr
             }.into(),
             expr @ (Expr::Ident(_) | Expr::SuperProp(_) | Expr::Update(_)) => capt!(self, expr),
+
             // "Boring" cases where the expr is just a thin wrapper and we just want to recurse into the wrapper
             Expr::Paren(paren_expr) => capture_sub_expr!(self, paren_expr.expr),
             Expr::TsAs(ts_as_expr) => capture_sub_expr!(self, ts_as_expr.expr),
