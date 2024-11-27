@@ -75,6 +75,22 @@ impl PowerAssertTransformerVisitor {
             };
         }
 
+        let mut capture_template = |tpl: Tpl, prefix: &str| Tpl {
+            exprs: tpl
+                .exprs
+                .into_iter()
+                .enumerate()
+                .map(|(i, expr)| {
+                    Box::new(self.capture_expr(
+                        *expr,
+                        append_path(&format!("{prefix}expressions/{i}")),
+                        None,
+                    ))
+                })
+                .collect(),
+            ..tpl
+        };
+
         match node.take() {
             Expr::Array(array_lit) => capt!(self, ArrayLit {
                 elems: array_lit.elems.into_iter()
@@ -161,6 +177,12 @@ impl PowerAssertTransformerVisitor {
                 .map(|(i, expr)| Box::new(self.capture_expr(*expr, append_path(&format!("expressions/{i}")), None))).collect(),
                 ..seq_expr
             }.into(),
+            Expr::Tpl(tpl) => capt!(self, capture_template(tpl, "")),
+            Expr::TaggedTpl(tagged_tpl) => {
+                let tpl = capture_template(*tagged_tpl.tpl, "quasi/").into();
+                let tag = self.capture_expr(*tagged_tpl.tag, append_path("tag"), None).into();
+                capt!(self, TaggedTpl { tag, tpl, ..tagged_tpl })
+            },
             expr @ (Expr::Ident(_) | Expr::SuperProp(_) | Expr::Update(_)) => capt!(self, expr),
 
             // "Boring" cases where the expr is just a thin wrapper and we just want to recurse into the wrapper
@@ -170,8 +192,6 @@ impl PowerAssertTransformerVisitor {
 
             // Exprs that are just ignored, neither captured nor recursed into
             expr @ (Expr::Lit(_) | Expr::This(_) | Expr::Class(_) | Expr::Fn(_) | Expr::Invalid(_)) => expr,
-            // Expr::Tpl(tpl) => todo!(),
-            // Expr::TaggedTpl(tagged_tpl) => todo!(),
             // Expr::Arrow(arrow_expr) => todo!(),
             // Expr::Yield(yield_expr) => todo!(),
             // Expr::MetaProp(meta_prop_expr) => todo!(),
