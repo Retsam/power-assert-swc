@@ -78,9 +78,10 @@ assert({
 );
 
 expr_test!(
-    assert_func,
+    expr_func,
     r#"
 assert(function() { return x == y}())
+assert((() => x == y)())
 "#
 );
 

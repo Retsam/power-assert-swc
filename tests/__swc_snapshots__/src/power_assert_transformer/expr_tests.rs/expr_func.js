@@ -28,3 +28,8 @@ assert(_rec._expr(_rec._capt(function() {
     filepath: "input/test.js",
     line: 3
 }));
+assert(_rec._expr(_rec._capt((()=>x == y)(), "arguments/0"), {
+    content: "assert((() => x == y)())",
+    filepath: "input/test.js",
+    line: 4
+}));

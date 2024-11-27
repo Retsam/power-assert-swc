@@ -191,8 +191,7 @@ impl PowerAssertTransformerVisitor {
             Expr::TsInstantiation(ts_instantiation) => capture_sub_expr!(self, ts_instantiation.expr),
 
             // Exprs that are just ignored, neither captured nor recursed into
-            expr @ (Expr::Lit(_) | Expr::This(_) | Expr::Class(_) | Expr::Fn(_) | Expr::Invalid(_)) => expr,
-            // Expr::Arrow(arrow_expr) => todo!(),
+            expr @ (Expr::Lit(_) | Expr::This(_) | Expr::Class(_) | Expr::Fn(_) | Expr::Arrow(_) | Expr::Invalid(_)) => expr,
             // Expr::Yield(yield_expr) => todo!(),
             // Expr::MetaProp(meta_prop_expr) => todo!(),
             // Expr::Await(await_expr) => todo!(),
