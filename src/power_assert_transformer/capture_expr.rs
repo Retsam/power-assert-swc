@@ -61,6 +61,13 @@ impl PowerAssertTransformerVisitor {
                 new_expr.into()
             }};
         }
+        macro_rules! capture_sub_expr_with_path {
+            ($self: ident, $orig: ident.$field: ident, $path: expr) => {{
+                let mut new_expr = $orig.clone();
+                *new_expr.$field = $self.capture_expr(*$orig.$field, append_path($path), None);
+                Expr::from(new_expr)
+            }};
+        }
 
         // Common logic shared between Expr::Call and Expr::New
         macro_rules! capture_args {
@@ -185,6 +192,12 @@ impl PowerAssertTransformerVisitor {
             },
             expr @ (Expr::Ident(_) | Expr::SuperProp(_) | Expr::Update(_)) => capt!(self, expr),
 
+            Expr::Yield(yield_expr) => capt!(self, YieldExpr {
+                arg: yield_expr.arg.map(|arg| Box::new(self.capture_expr(*arg, append_path("argument"), None))),
+                ..yield_expr
+            }),
+            Expr::Await(await_expr) => capt!(self, capture_sub_expr_with_path!(self, await_expr.arg, "argument")),
+
             // "Boring" cases where the expr is just a thin wrapper and we just want to recurse into the wrapper
             Expr::Paren(paren_expr) => capture_sub_expr!(self, paren_expr.expr),
             Expr::TsAs(ts_as_expr) => capture_sub_expr!(self, ts_as_expr.expr),
@@ -192,9 +205,7 @@ impl PowerAssertTransformerVisitor {
 
             // Exprs that are just ignored, neither captured nor recursed into
             expr @ (Expr::Lit(_) | Expr::This(_) | Expr::Class(_) | Expr::Fn(_) | Expr::Arrow(_) | Expr::Invalid(_)) => expr,
-            // Expr::Yield(yield_expr) => todo!(),
             // Expr::MetaProp(meta_prop_expr) => todo!(),
-            // Expr::Await(await_expr) => todo!(),
             // Expr::JSXMember(jsxmember_expr) => todo!(),
             // Expr::JSXNamespacedName(jsxnamespaced_name) => todo!(),
             // Expr::JSXEmpty(jsxempty_expr) => todo!(),

@@ -84,6 +84,14 @@ assert(function() { return x == y}())
 assert((() => x == y)())
 "#
 );
+expr_test!(
+    expr_yield_await,
+    r#"
+async function* foo() {
+  assert(await (x, y));
+  assert(yield (x, y));
+}"#
+);
 
 expr_test!(
     expr_templates,
