@@ -107,7 +107,6 @@ impl PowerAssertTransformerVisitor {
                     ..object_lit
                 })
             },
-            // Expr::Fn(fn_expr) => todo!(),
             Expr::Unary(unary_expr) => capt!(
                 self,
                 capture_subs_exprs!(self, unary_expr, UnaryExpr { arg })
@@ -170,7 +169,7 @@ impl PowerAssertTransformerVisitor {
             Expr::TsInstantiation(ts_instantiation) => capture_sub_expr!(self, ts_instantiation.expr),
 
             // Exprs that are just ignored, neither captured nor recursed into
-            expr @ (Expr::Lit(_) | Expr::This(_) | Expr::Class(_) | Expr::Invalid(_)) => expr,
+            expr @ (Expr::Lit(_) | Expr::This(_) | Expr::Class(_) | Expr::Fn(_) | Expr::Invalid(_)) => expr,
             // Expr::Tpl(tpl) => todo!(),
             // Expr::TaggedTpl(tagged_tpl) => todo!(),
             // Expr::Arrow(arrow_expr) => todo!(),

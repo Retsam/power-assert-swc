@@ -78,6 +78,13 @@ assert({
 );
 
 expr_test!(
+    assert_func,
+    r#"
+assert(function() { return x == y}())
+"#
+);
+
+expr_test!(
     expr_comma,
     r#"
     assert((x, y))
