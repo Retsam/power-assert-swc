@@ -204,8 +204,7 @@ impl PowerAssertTransformerVisitor {
             Expr::TsInstantiation(ts_instantiation) => capture_sub_expr!(self, ts_instantiation.expr),
 
             // Exprs that are just ignored, neither captured nor recursed into
-            expr @ (Expr::Lit(_) | Expr::This(_) | Expr::Class(_) | Expr::Fn(_) | Expr::Arrow(_) | Expr::Invalid(_)) => expr,
-            // Expr::MetaProp(meta_prop_expr) => todo!(),
+            expr @ (Expr::Lit(_) | Expr::This(_) | Expr::Class(_) | Expr::Fn(_) | Expr::Arrow(_) | Expr::Invalid(_) | Expr::PrivateName(_) | Expr::MetaProp(_)) => expr,
             // Expr::JSXMember(jsxmember_expr) => todo!(),
             // Expr::JSXNamespacedName(jsxnamespaced_name) => todo!(),
             // Expr::JSXEmpty(jsxempty_expr) => todo!(),
@@ -215,7 +214,6 @@ impl PowerAssertTransformerVisitor {
             // Expr::TsConstAssertion(ts_const_assertion) => todo!(),
             // Expr::TsNonNull(ts_non_null_expr) => todo!(),
             // Expr::TsSatisfies(ts_satisfies_expr) => todo!(),
-            // Expr::PrivateName(private_name) => todo!(),
             // Expr::OptChain(opt_chain_expr) => todo!(),
             expr => expr,
         }

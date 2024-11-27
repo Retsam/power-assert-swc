@@ -106,3 +106,15 @@ expr_test!(
     assert((x, y))
     "#
 );
+
+expr_test!(
+    expr_meta,
+    r#"
+class Foo {
+  constructor() {
+    assert(new.target.whatever);
+  }
+}
+assert(import.meta.whatever)
+"#
+);
