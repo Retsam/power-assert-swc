@@ -108,6 +108,13 @@ expr_test!(
 );
 
 expr_test!(
+    expr_opt_chain,
+    r#"
+assert(x?.y.z == "a");
+"#
+);
+
+expr_test!(
     expr_meta,
     r#"
 class Foo {

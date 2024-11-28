@@ -205,6 +205,8 @@ impl PowerAssertTransformerVisitor {
 
             // Exprs that are just ignored, neither captured nor recursed into
             expr @ (Expr::Lit(_) | Expr::This(_) | Expr::Class(_) | Expr::Fn(_) | Expr::Arrow(_) | Expr::Invalid(_) | Expr::PrivateName(_) | Expr::MetaProp(_)) => expr,
+            // Probably an opportunity for improvement here - the babel plugin doesn't transform this, but probably this syntax is just newer than power-assert
+            expr @ Expr::OptChain(_) => expr,
             // Expr::JSXMember(jsxmember_expr) => todo!(),
             // Expr::JSXNamespacedName(jsxnamespaced_name) => todo!(),
             // Expr::JSXEmpty(jsxempty_expr) => todo!(),
@@ -214,7 +216,6 @@ impl PowerAssertTransformerVisitor {
             // Expr::TsConstAssertion(ts_const_assertion) => todo!(),
             // Expr::TsNonNull(ts_non_null_expr) => todo!(),
             // Expr::TsSatisfies(ts_satisfies_expr) => todo!(),
-            // Expr::OptChain(opt_chain_expr) => todo!(),
             expr => expr,
         }
     }
