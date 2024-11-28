@@ -201,7 +201,11 @@ impl PowerAssertTransformerVisitor {
             // "Boring" cases where the expr is just a thin wrapper and we just want to recurse into the wrapper
             Expr::Paren(paren_expr) => capture_sub_expr!(self, paren_expr.expr),
             Expr::TsAs(ts_as_expr) => capture_sub_expr!(self, ts_as_expr.expr),
+            Expr::TsTypeAssertion(ts_type_assertion) => capture_sub_expr!(self, ts_type_assertion.expr),
+            Expr::TsConstAssertion(ts_const_assertion) => capture_sub_expr!(self, ts_const_assertion.expr),
             Expr::TsInstantiation(ts_instantiation) => capture_sub_expr!(self, ts_instantiation.expr),
+            Expr::TsNonNull(ts_non_null_expr) => capture_sub_expr!(self, ts_non_null_expr.expr),
+            Expr::TsSatisfies(ts_satisfies_expr) => capture_sub_expr!(self, ts_satisfies_expr.expr),
 
             // Exprs that are just ignored, neither captured nor recursed into
             expr @ (Expr::Lit(_) | Expr::This(_) | Expr::Class(_) | Expr::Fn(_) | Expr::Arrow(_) | Expr::Invalid(_) | Expr::PrivateName(_) | Expr::MetaProp(_)) => expr,
@@ -212,10 +216,6 @@ impl PowerAssertTransformerVisitor {
             // Expr::JSXEmpty(jsxempty_expr) => todo!(),
             // Expr::JSXElement(jsxelement) => todo!(),
             // Expr::JSXFragment(jsxfragment) => todo!(),
-            // Expr::TsTypeAssertion(ts_type_assertion) => todo!(),
-            // Expr::TsConstAssertion(ts_const_assertion) => todo!(),
-            // Expr::TsNonNull(ts_non_null_expr) => todo!(),
-            // Expr::TsSatisfies(ts_satisfies_expr) => todo!(),
             expr => expr,
         }
     }

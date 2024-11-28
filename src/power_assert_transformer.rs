@@ -1,22 +1,20 @@
 use std::sync::Arc;
 
+#[allow(unused)]
+use expr_tests::tr;
 use flatten_member_exprs::flatten_member_exprs;
 use power_assert_recorder::{
     new_power_assert_recorder_stmt, power_assert_recorder_definition, wrap_in_record,
     RecorderContext,
 };
 use swc_core::{
-    common::{util::take::Take, Mark, SourceMapper, Span, Spanned},
+    common::{util::take::Take, SourceMapper, Span, Spanned},
     ecma::{
         ast::*,
-        transforms::{
-            base::resolver,
-            testing::{test, Tester},
-        },
-        visit::{visit_mut_pass, VisitMut, VisitMutWith},
+        transforms::testing::test,
+        visit::{VisitMut, VisitMutWith},
     },
 };
-
 mod capture_expr;
 mod expr_tests;
 mod flatten_member_exprs;
@@ -207,17 +205,6 @@ impl PowerAssertContainer for ArrowExpr {
         };
     }
     normal_recorder_context_impl!();
-}
-
-#[allow(unused)]
-fn tr(tester: &mut Tester) -> impl Pass {
-    (
-        resolver(Mark::new(), Mark::new(), false),
-        visit_mut_pass(PowerAssertTransformerVisitor::new(
-            "input/test.js".into(),
-            tester.cm.clone(),
-        )),
-    )
 }
 
 test!(

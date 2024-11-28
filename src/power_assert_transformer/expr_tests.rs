@@ -1,13 +1,55 @@
-use swc_core::ecma::transforms::testing::test;
+use swc_core::{
+    common::Mark,
+    ecma::{
+        ast::Pass,
+        transforms::{
+            base::resolver,
+            testing::{test, Tester},
+        },
+        visit::visit_mut_pass,
+    },
+};
+#[allow(unused)]
+use swc_ecma_parser::Syntax;
+
+use super::PowerAssertTransformerVisitor;
 
 #[allow(unused)]
-use super::tr;
+pub fn tr(tester: &mut Tester) -> impl Pass {
+    (
+        resolver(Mark::new(), Mark::new(), false),
+        visit_mut_pass(PowerAssertTransformerVisitor::new(
+            "input/test.js".into(),
+            tester.cm.clone(),
+        )),
+    )
+}
+#[allow(unused)]
+pub fn tr_ts(tester: &mut Tester) -> impl Pass {
+    (
+        resolver(Mark::new(), Mark::new(), false),
+        visit_mut_pass(PowerAssertTransformerVisitor::new(
+            "input/test.ts".into(),
+            tester.cm.clone(),
+        )),
+    )
+}
 
 macro_rules! expr_test {
     ($name: ident, $code: literal) => {
         test!(
             Default::default(),
             tr,
+            $name,
+            &format!("import assert from 'assert';\n\n{}", $code)
+        );
+    };
+}
+macro_rules! expr_test_ts {
+    ($name: ident, $code: literal) => {
+        test!(
+            Syntax::Typescript(Default::default()),
+            tr_ts,
             $name,
             &format!("import assert from 'assert';\n\n{}", $code)
         );
@@ -123,5 +165,16 @@ class Foo {
   }
 }
 assert(import.meta.whatever)
+"#
+);
+
+expr_test_ts!(
+    expr_ts,
+    r#"
+assert((x == "a") as false);
+assert((x == "b") as const);
+assert(<false> (x == "c"));
+assert(x! == "d");
+assert((x == "e") satisfies boolean);
 "#
 );

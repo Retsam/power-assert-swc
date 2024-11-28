@@ -22,7 +22,7 @@ class _powerAssertRecorder {
 }
 var _rec = new _powerAssertRecorder();
 class Foo {
-    constructor() {
+    constructor(){
         var _rec = new _powerAssertRecorder();
         assert(_rec._expr(_rec._capt(new.target.whatever, "arguments/0"), {
             content: "assert(new.target.whatever)",
