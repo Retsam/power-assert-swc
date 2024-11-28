@@ -208,15 +208,12 @@ impl PowerAssertTransformerVisitor {
             Expr::TsSatisfies(ts_satisfies_expr) => capture_sub_expr!(self, ts_satisfies_expr.expr),
 
             // Exprs that are just ignored, neither captured nor recursed into
-            expr @ (Expr::Lit(_) | Expr::This(_) | Expr::Class(_) | Expr::Fn(_) | Expr::Arrow(_) | Expr::Invalid(_) | Expr::PrivateName(_) | Expr::MetaProp(_)) => expr,
+            expr @ (
+                Expr::Lit(_) | Expr::This(_) | Expr::Class(_) | Expr::Fn(_) | Expr::Arrow(_) | Expr::Invalid(_) | Expr::PrivateName(_) | Expr::MetaProp(_) |
+                Expr::JSXMember(_) | Expr::JSXNamespacedName(_) | Expr::JSXEmpty(_) | Expr::JSXElement(_) | Expr::JSXFragment(_)
+            ) => expr,
             // Probably an opportunity for improvement here - the babel plugin doesn't transform this, but probably this syntax is just newer than power-assert
             expr @ Expr::OptChain(_) => expr,
-            // Expr::JSXMember(jsxmember_expr) => todo!(),
-            // Expr::JSXNamespacedName(jsxnamespaced_name) => todo!(),
-            // Expr::JSXEmpty(jsxempty_expr) => todo!(),
-            // Expr::JSXElement(jsxelement) => todo!(),
-            // Expr::JSXFragment(jsxfragment) => todo!(),
-            expr => expr,
         }
     }
 }
